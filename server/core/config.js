@@ -20,6 +20,7 @@ const CONFIG_FILE = path.join(JADE_HOME, 'config.json');
 
 export const DEFAULTS = {
   name: '',
+  window: 'app',             // how the launcher opens Jade: 'app' = its own window with no address bar (Chrome, Edge, Chromium, Brave); 'tab' = a tab in your normal browser. JADE_WINDOW and --tab override it
   assistantName: 'Jade',
   role: 'project manager',   // what the assistant is told the user does (the soul file and the profile line say it)
   wakeWord: 'hey jade',

@@ -155,21 +155,8 @@ export async function startServer({ home, claudeHome, bin = '', token = GATE_TOK
   return server;
 }
 
-/** The path of a Chromium-family browser, or '' when none is found. $CHROMIUM or $CHROME_BIN wins. */
-export function findBrowser(env = process.env, exists = fs.existsSync) {
-  const given = env.CHROMIUM || env.CHROME_BIN;
-  if (given) return exists(given) ? given : '';
-  const files = {
-    darwin: ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', '/Applications/Chromium.app/Contents/MacOS/Chromium', '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge', '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser'],
-    win32: ['ProgramFiles', 'ProgramFiles(x86)', 'LOCALAPPDATA'].flatMap(v => env[v] ? ['Google\\Chrome\\Application\\chrome.exe', 'Microsoft\\Edge\\Application\\msedge.exe', 'Chromium\\Application\\chrome.exe'].map(r => path.join(env[v], r)) : []),
-    linux: ['/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/snap/bin/chromium', '/usr/bin/microsoft-edge', '/usr/bin/brave-browser'],
-  }[process.platform] || [];
-  for (const f of files) if (exists(f)) return f;
-  if (process.platform !== 'win32') {   // anything with a browser name on PATH
-    for (const d of (env.PATH || '').split(path.delimiter).filter(Boolean)) for (const n of ['chromium', 'chromium-browser', 'google-chrome', 'google-chrome-stable', 'chrome']) { const f = path.join(d, n); if (exists(f)) return f; }
-  }
-  return '';
-}
+// The browser finder is shared with the launcher: one place knows where browsers live (server/core/browser.js).
+export { findBrowser } from '../../server/core/browser.js';
 
 // A WebSocket for the DevTools connection. Node 22+ has one built in; Node 20 does not, so this is a small
 // client (RFC 6455: text frames, masking, fragmented and large frames, ping/pong, close) over an http upgrade.

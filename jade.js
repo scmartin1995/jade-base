@@ -4,15 +4,18 @@ process.title = 'Jade launcher';
 // so editing Jade never needs a manual restart. Open windows reconnect on their own.
 //   node jade.js            start and open the browser
 //   node jade.js --no-open  start without opening a window
+//   node jade.js --tab      open a browser tab instead of an app window (also JADE_WINDOW=tab, or `window` in config.json)
 //   JADE_HOME=~/Somewhere   keep data somewhere else (default ~/JadeBase)
 //   JADE_PORT=<number>      change the port (default: DEFAULT_PORT in server/core/config.js)
 import { fork, spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { JADE_HOME, port } from './server/core/config.js';
+import * as config from './server/core/config.js';
+import { openPlan, openWindow, windowMode } from './server/core/browser.js';
 import { openerUrl } from './server/core/opener.js';
 
+const { JADE_HOME, port } = config;
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const ENTRY = path.join(ROOT, 'server', 'index.js');
 const PORT = port();
@@ -50,20 +53,13 @@ function openBrowser() {
   // the window opens a small file in the owner-only data folder that moves on to the start link, so the key is never in a program's arguments
   let URL;
   try { URL = openerUrl(PORT); } catch { return console.log(`Open ${BASE} in your browser, using the link Jade showed when it started.`); }
-  // Prefer an app-style window (no tabs or address bar) in Chrome/Edge/Chromium when one is installed.
-  const candidates = process.platform === 'darwin'
-    ? [['open', ['-na', 'Google Chrome', '--args', `--app=${URL}`]], ['open', [URL]]]
-    : process.platform === 'win32'
-      ? [['cmd', ['/c', 'start', '', 'msedge', `--app=${URL}`]], ['cmd', ['/c', 'start', '', URL]]]
-      : [['chromium', [`--app=${URL}`, '--class=Jade']], ['google-chrome-stable', [`--app=${URL}`, '--class=Jade']], ['google-chrome', [`--app=${URL}`, '--class=Jade']], ['xdg-open', [URL]]];
-  const tryNext = i => {
-    if (i >= candidates.length) return console.log(`Open ${BASE} in your browser, using the link Jade showed when it started.`);
-    const [cmd, args] = candidates[i];
-    const p = spawn(cmd, args, { detached: true, stdio: 'ignore', windowsHide: true });
-    p.on('error', () => tryNext(i + 1));
-    p.unref();
-  };
-  tryNext(0);
+  const mode = windowMode({ argv: process.argv, config: config.get() });
+  const plan = openPlan({ url: URL, mode });
+  openWindow(plan, {
+    spawn,
+    retry: () => openPlan({ url: URL, mode: 'tab' }),   // the browser file would not run: a tab instead
+    done: used => console.log(used ? used.said : `Open ${BASE} in your browser, using the link Jade showed when it started.`),
+  });
 }
 
 // Only one server at a time: a pending crash-restart and a file-change restart must never both start one.

@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { ROOT, findBrowser, safePath, gateSandbox, startServer, waitFor } from '../scripts/gates/lib.mjs';
+import { ROOT, safePath, gateSandbox, startServer, waitFor } from '../scripts/gates/lib.mjs';
 import { put } from './helpers/env.js';
 import { removeDir } from './helpers/rm.js';
 
@@ -52,25 +52,6 @@ test('imports gate: fails when a project panel names a file that is not there, a
     assert.ok(d.missingViews.some(v => /meetings-panel\.js \(meetings: project panel/.test(v)), JSON.stringify(d.missingViews));
     assert.ok(d.missingImports.some(v => /home\.js -> \.\/not-here\.js/.test(v)), JSON.stringify(d.missingImports));
   } finally { removeDir(tree); }
-});
-
-test('browser finder: $CHROMIUM wins, then the usual places for each system, and nothing found gives an empty answer', () => {
-  const has = set => f => set.includes(f);
-  assert.equal(findBrowser({ CHROMIUM: '/x/chrome' }, has(['/x/chrome'])), '/x/chrome');
-  assert.equal(findBrowser({ CHROME_BIN: '/nope' }, has([])), '', 'a path that is given but missing is not silently replaced');
-  const was = Object.getOwnPropertyDescriptor(process, 'platform');
-  const as = platform => Object.defineProperty(process, 'platform', { value: platform });
-  try {
-    as('darwin');
-    assert.equal(findBrowser({}, has(['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'])), '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome');
-    as('win32');
-    const edge = path.join('C:\\Program Files (x86)', 'Microsoft\\Edge\\Application\\msedge.exe');
-    assert.equal(findBrowser({ 'ProgramFiles(x86)': 'C:\\Program Files (x86)' }, has([edge])), edge);
-    as('linux');
-    const chrome = path.join('/usr/local/bin', 'google-chrome');   // joined with this system's separator
-    assert.equal(findBrowser({ PATH: '/opt/b' + path.delimiter + '/usr/local/bin' }, has([chrome])), chrome);
-    assert.equal(findBrowser({ PATH: '/opt/b' }, has([])), '');
-  } finally { Object.defineProperty(process, 'platform', was); }
 });
 
 test('pages gate: with no browser it says so plainly and is skipped, not failed', () => {

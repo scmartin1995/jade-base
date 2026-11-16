@@ -168,7 +168,11 @@ export default {
           <label class="field">Assistant name<input data-k="assistantName" value="${esc(c.assistantName)}"></label></div>
           <label class="field">Wake word <small>say it, then your request (“Hey Jade, what's due this week?”)</small><input data-k="wakeWord" value="${esc(c.wakeWord)}"></label></div>`);
     } else if (sec === 'look') {
-      body = group('Theme', `<p class="help">Jade uses its built-in Osaka Jade look.</p>
+      body = group('Window', `<div class="form"><label class="field">When Jade starts, open it in<select data-k="window">
+          <option value="app" ${c.window !== 'tab' ? 'selected' : ''}>Its own window (no address bar or tabs)</option>
+          <option value="tab" ${c.window === 'tab' ? 'selected' : ''}>A tab in my browser</option></select></label></div>`,
+        { note: 'Used the next time you start Jade. Needs Chrome, Edge, Chromium or Brave for its own window; with none of them, or in Firefox or Safari, Jade opens a tab. <code>JADE_WINDOW=tab</code> or <code>--tab</code> overrides this.' })
+      + group('Theme', `<p class="help">Jade uses its built-in Osaka Jade look.</p>
           <div class="row" style="gap:6px;margin-top:8px">${['accent', 'cyan', 'background', 'lighter_background', 'foreground', 'bright_foreground', 'magenta', 'yellow', 'red'].map(k => `<span title="${k}" style="width:26px;height:26px;border-radius:8px;border:1px solid var(--line-hi);background:${esc(state.boot.theme[k])}"></span>`).join('')}</div>`);
     } else if (sec === 'meetings') {
       const modelPick = (key, label, help) => { const cur = c.agents?.[key] || '';
