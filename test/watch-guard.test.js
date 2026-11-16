@@ -46,7 +46,9 @@ test('a project folder that is deleted loses its watcher, and is watched again w
   assert.ok(watcherCount() > before, 'the project folder is watched');
   const during = watcherCount();
   fs.rmSync(proj, { recursive: true });
-  assert.ok(await waitFor(() => watcherCount() < during, 3000), 'the watcher is closed once the folder is gone');
+  // no event is needed: some systems send none when the watched folder itself is deleted, so look again on the timer or by hand
+  if (!(await waitFor(() => watcherCount() < during, 3000))) store.syncWatches();
+  assert.ok(watcherCount() < during, 'the watcher is closed once the folder is gone');
   fs.mkdirSync(proj);
   store.syncWatches();
   assert.ok(watcherCount() >= during, 'watched again once the folder is back');

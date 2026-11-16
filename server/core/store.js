@@ -142,6 +142,7 @@ function watchDirOnce(dir, fn) {
   try {
     const w = guardedWatch(dir, null, (ev, f) => fn(String(f || '')), { onClose: () => { if (watching.get(dir) === w) watching.delete(dir); recheckSoon(); } });
     w.on('error', () => { try { w.close(); } catch {} if (watching.get(dir) === w) watching.delete(dir); }); w.unref?.(); watching.set(dir, w);
+    recheckSoon();   // some systems (macOS, Node 20) send no event when the watched folder itself is deleted, so look again on the timer
   } catch {}
 }
 /** Watch each project's first folder (for the Jade folder appearing), the Jade folder (actions.json) and its Notes folder. */
@@ -162,7 +163,7 @@ export function syncWatches() {
     want.add(notes);
     watchDirOnce(notes, f => { if (!f.endsWith('.tmp')) later('notes'); });
   }
-  for (const [dir, w] of watching) if (!want.has(dir)) { try { w.close(); } catch {} watching.delete(dir); }
+  for (const [dir, w] of watching) if (!want.has(dir) || !fs.existsSync(dir)) { try { w.close(); } catch {} watching.delete(dir); }
 }
 
 // ---------- projects
