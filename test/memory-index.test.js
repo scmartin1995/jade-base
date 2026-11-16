@@ -110,14 +110,15 @@ test('a text-less PDF is read once, not on every pass', { skip: process.platform
 });
 
 // ---- isSecret: the quick check against the original one, on a large generated list
-function oldIsSecret(p) {   // the implementation before this change, kept here as the reference
+function oldIsSecret(p, native = false) {
+  const realpath = native ? fs.realpathSync.native : fs.realpathSync;   // the implementation before this change, kept here as the reference (`native`: ask the system for the real path, as isSecret does, so on a file system that ignores case `.STATE` is seen as `.state`)
   const same = (a, b) => a.ino && a.ino === b.ino && a.dev === b.dev;
   const r = resolveHome(p);
-  let rp = r; try { rp = fs.realpathSync(r); } catch { /* not there */ }
+  let rp = r; try { rp = realpath(r); } catch { /* not there */ }
   let st = null; try { st = fs.statSync(r); } catch { /* not there */ }
   const secrets = [path.join(config.JADE_HOME, '.state'), path.join(config.JADE_HOME, 'engine.env')];
   for (const s of secrets) {
-    let rs = s; try { rs = fs.realpathSync(s); } catch { /* not there */ }
+    let rs = s; try { rs = realpath(s); } catch { /* not there */ }
     if (within(s, r) || within(rs, rp) || within(rs, r) || within(s, rp)) return true;
   }
   if (st?.isFile()) for (const s of [path.join(secrets[0], 'token'), secrets[1]]) { try { if (same(fs.statSync(s), st)) return true; } catch { /* none */ } }
@@ -144,7 +145,7 @@ test('isSecret answers exactly as before on a large generated list (names, symli
   const ctx = files.secretContext();
   let yes = 0;
   for (const p of all) {
-    const was = oldIsSecret(p);
+    const was = oldIsSecret(p, true);
     assert.equal(files.isSecret(p), was, 'one by one: ' + p);
     assert.equal(files.isSecret(p, ctx), was, 'with a shared context: ' + p);
     if (was) yes++;
@@ -153,6 +154,8 @@ test('isSecret answers exactly as before on a large generated list (names, symli
   // never less strict: every path that reaches a secret by any of these ways is caught
   for (const p of [path.join(other, 'to-state', 'token'), path.join(other, 'hard-token'), path.join(other, 'to-env'), path.join(other, 'chain', 'private', 'x.json')]) assert.equal(files.isSecret(p), true, p);
   assert.equal(files.isSecret(path.join(other, 'plain-hard.md')), false);
+  // where the file system ignores case (macOS, Windows) the other spelling is the same folder and must be refused too
+  if (fs.existsSync(path.join(H, '.STATE', 'token'))) for (const p of [path.join(H, '.STATE', 'token'), path.join(H, '.State'), path.join(H, 'ENGINE.ENV')]) assert.equal(files.isSecret(p), true, p);
 });
 
 test('isSecret is much faster than before on a long list', () => {
