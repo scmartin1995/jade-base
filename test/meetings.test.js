@@ -525,3 +525,24 @@ test('round trip: what writeRecord writes is what the dashboards read back (one 
   assert.deepEqual([back.date, back.title], ['2026-01-02', 'T']);
   assert.equal(record.parse('## H\n\n- x\n', '/p/2026-03-04 Name here.md').title, 'Name here', 'file name fallback');
 });
+
+test('recording with nothing kept is refused, unless the person says so; a normal record is unchanged', async () => {
+  reset();
+  const m = meetings.get(await drop());
+  assert.ok(all(m).every(i => i.accepted == null));
+  assert.throws(() => meetings.writeRecord(m.id), e => e.status === 400 && /Nothing is ticked/.test(e.message));
+  assert.throws(() => meetings.writeRecord(m.id, { empty: false }), e => e.status === 400);
+  assert.equal(meetings.get(m.id).status, 'review', 'the meeting stays in review');
+  assert.ok(!meetings.get(m.id).recordPath, 'nothing was written');
+  // leaving every item out is the same as ticking nothing
+  meetings.patch(m.id, { items: all(m).map(i => ({ id: i.id, accepted: false })) });
+  assert.throws(() => meetings.writeRecord(m.id), e => e.status === 400);
+  // the explicit empty record
+  const r = meetings.writeRecord(m.id, { empty: true });
+  assert.match(fs.readFileSync(r.recordPath, 'utf8'), /_Nothing was kept here\._/);
+  assert.equal(meetings.get(m.id).status, 'recorded');
+  // a normal record with one item kept needs no flag
+  const m2 = meetings.get(await drop());
+  accept(m2, [all(m2)[0].id]);
+  assert.match(fs.readFileSync(meetings.writeRecord(m2.id).recordPath, 'utf8'), /- The vendor is a risk/);
+});

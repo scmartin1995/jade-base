@@ -258,7 +258,7 @@ async function run(m, { signal, log }) {
   if (cfg().accept === 'auto') {
     for (const s of m.skills) for (const i of s.items) i.accepted = i.codeCheck?.ok && i.verdict === 'supported' ? true : i.accepted;
     save(m);
-    writeRecord(m.id);
+    if (m.skills.some(s => s.items.some(i => i.accepted === true))) writeRecord(m.id);   // nothing passed: it stays in review for the person to decide
   }
 }
 
@@ -266,7 +266,7 @@ async function run(m, { signal, log }) {
 export async function execute(mid, { signal, log } = {}) {
   const m = get(mid);
   if (!m) return { ok: false };
-  try { await run(m, { signal, log }); return { ok: true }; }
+  try { await run(m, { signal, log }); return { ok: true, model: m.steps.find(x => x.model)?.model || '' }; }
   catch (e) {
     if (e?.limit) {
       pausedUntil = e.until ? new Date(e.until).getTime() : Date.now() + 36e5;
@@ -434,9 +434,11 @@ const keptItems = s => s.items.filter(i => i.accepted === true).map(i => itemOf(
 function section(s) { return record.section(s.heading, keptItems(s)); }
 
 /** Write the record from the accepted items and add accepted action items to the action list. Writing again updates the same file. */
-export function writeRecord(mid) {
+export function writeRecord(mid, { empty = false } = {}) {
   const m = need(mid);
   if (!['review', 'recorded'].includes(m.status)) throw fail(409, 'This meeting is not ready to be recorded yet.');
+  // Nothing kept is almost always a slip, and would write a record that says nothing: it needs to be asked for in so many words.
+  if (!empty && !m.skills.some(s => s.items.some(i => i.accepted === true))) throw fail(400, 'Nothing is ticked, so there is nothing to record. Keep at least one item, or record the meeting with nothing kept.');
   const dir = store.projectDir(m.project, PARTS.meetings);
   // this meeting's own record is rewritten in place; any other file in the way (another meeting's record, a file of the user's) is never replaced
   const own = m.recordPath && (!fs.existsSync(m.recordPath) || isRecord(m.recordPath));
