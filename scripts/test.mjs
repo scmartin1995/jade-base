@@ -8,7 +8,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { readdirSync, readFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
@@ -22,7 +22,7 @@ const PER_TEST = minutes('JADE_TEST_TIMEOUT_MIN', 12), STALL = minutes('JADE_TES
 const help = spawnSync(process.execPath, ['--help'], { encoding: 'utf8' }).stdout || '';
 const dir = mkdtempSync(join(tmpdir(), 'jade-testrun-'));
 const statusFile = join(dir, 'status.json');
-const nodeArgs = ['--test', ...(help.includes('--test-timeout') ? [`--test-timeout=${PER_TEST}`] : []), `--test-reporter=${join(root, 'scripts', 'test-reporter.mjs')}`, '--test-reporter-destination=stdout', '--import', './test/setup.js', ...files];
+const nodeArgs = ['--test', ...(help.includes('--test-timeout') ? [`--test-timeout=${PER_TEST}`] : []), `--test-reporter=${pathToFileURL(join(root, 'scripts', 'test-reporter.mjs')).href}`, '--test-reporter-destination=stdout', '--import', './test/setup.js', ...files];
 const child = spawn(process.execPath, nodeArgs, { cwd: root, stdio: ['inherit', 'pipe', 'inherit'], env: { ...process.env, JADE_TEST_STATUS: statusFile } });
 let lastOutput = Date.now();
 const started = Date.now();
