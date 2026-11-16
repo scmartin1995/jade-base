@@ -48,6 +48,7 @@ Find the sentence that sounds like your problem. Each entry says what it means, 
 **Check.** The terminal shows `changed, restarting the server`, or `restarting once the N running replies finish`.
 **Fix.** If nothing happens, check the file was saved in the same folder Jade watches, and restart Jade. A same-content rewrite is deliberately ignored.
 **Owner.** `jade.js`, `server/index.js` (watchers).
+**After a folder was deleted.** A watcher is closed as soon as its folder is gone, or if it reports more than 500 changes in a second (`guardedWatch` in `server/core/util.js`, `docs/adr/0018-a-watcher-is-closed-when-its-folder-is-gone.md`). The folder is watched again when it comes back, within a few seconds; until then the file list is checked on the disk instead.
 
 ## Connecting to Claude
 

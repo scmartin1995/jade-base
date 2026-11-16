@@ -16,7 +16,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { JADE_HOME, STATE, get as cfg } from './config.js';
-import { readJSON, writeJSON, writeText, ensureDir, id, slug, today, parseFrontmatter, stringifyFrontmatter } from './util.js';
+import { guardedWatch, readJSON, writeJSON, writeText, ensureDir, id, slug, today, parseFrontmatter, stringifyFrontmatter } from './util.js';
 import { jadeFolderName, jadeDir, firstFolder, folderProblem, usableJadeDir, pathFor, dirFor, PARTS } from './locations.js';
 import { emit } from './bus.js';
 import { redact } from './redact.js';
@@ -128,9 +128,21 @@ function tryProject(projectId, fn) {
 const watching = new Map();   // dir -> watcher
 const dataChanged = {};
 const later = kind => { clearTimeout(dataChanged[kind]); dataChanged[kind] = setTimeout(() => changed(kind), 250); dataChanged[kind].unref?.(); };
+// A watcher that closed itself (its folder was deleted, or it went into a storm of events) is forgotten here, and the folders are
+// looked at again every few seconds for a while, so a folder that comes back is watched again.
+let recheck = null, rechecks = 0;
+function recheckSoon() {
+  rechecks = 60;
+  if (recheck) return;
+  recheck = setInterval(() => { syncWatches(); if (--rechecks <= 0) { clearInterval(recheck); recheck = null; } }, 5000);
+  recheck.unref?.();
+}
 function watchDirOnce(dir, fn) {
   if (watching.has(dir)) return;
-  try { const w = fs.watch(dir, (ev, f) => fn(String(f || ''))); w.on('error', () => { w.close(); watching.delete(dir); }); w.unref?.(); watching.set(dir, w); } catch {}
+  try {
+    const w = guardedWatch(dir, null, (ev, f) => fn(String(f || '')), { onClose: () => { if (watching.get(dir) === w) watching.delete(dir); recheckSoon(); } });
+    w.on('error', () => { try { w.close(); } catch {} if (watching.get(dir) === w) watching.delete(dir); }); w.unref?.(); watching.set(dir, w);
+  } catch {}
 }
 /** Watch each project's first folder (for the Jade folder appearing), the Jade folder (actions.json) and its Notes folder. */
 export function syncWatches() {

@@ -158,6 +158,32 @@ export function truncate(s, n) {
   return s.length > n ? s.slice(0, n) + '…' : s;
 }
 
+// ---------- watching with a guard. A watched folder that is deleted must not keep reporting: on Windows with Node 22 and later the
+// system then sends 'rename' without end (hundreds of thousands a second), which spins the processor and keeps the process from
+// ever exiting. So a watcher is closed when its folder is gone, and also when it reports more than `maxPerSecond` events in one
+// second (a storm). `onClose('gone' | 'storm')` lets the owner forget it and look again later (a folder that comes back is watched again).
+const live = new Set();
+/** How many guarded watchers are open right now (for tests and diagnosis). */
+export const watcherCount = () => live.size;
+export function guardedWatch(dir, options, cb, { onClose, watchFn, maxPerSecond = 500 } = {}) {
+  const watchIt = watchFn || fs.watch;
+  let w, n = 0, windowStart = Date.now(), done = false;
+  const end = why => { if (done) return; done = true; live.delete(w); try { w.close(); } catch {} try { onClose?.(why); } catch {} };
+  const onEvent = (ev, f) => {
+    if (done) return;
+    const now = Date.now();
+    if (now - windowStart >= 1000) { windowStart = now; n = 0; }
+    if (++n > maxPerSecond) return end('storm');
+    if (!fs.existsSync(dir)) return end('gone');
+    cb(ev, f);
+  };
+  w = options ? watchIt(dir, options, onEvent) : watchIt(dir, onEvent);
+  live.add(w);
+  const close = w.close?.bind(w);
+  if (close) w.close = (...a) => { live.delete(w); return close(...a); };
+  return w;
+}
+
 /**
  * Watch a folder tree and call cb(relativePath) on any change. macOS and Windows have reliable native recursive
  * watching. On Linux, Node's recursive watcher loses files that editors save atomically (write temp + rename),
@@ -176,7 +202,7 @@ export function watchTree(root, cb, { skip = /(^|[\\/])(\.git|node_modules|\.cac
   const inodeOf = dir => { try { return fs.statSync(dir).ino; } catch { return -1; } };
   if (process.platform !== 'linux') {
     try {
-      const w = fs.watch(root, { recursive: true }, (ev, f) => { if (f && !skip.test(String(f))) cb(String(f)); });
+      const w = guardedWatch(root, { recursive: true }, (ev, f) => { if (f && !skip.test(String(f))) cb(String(f)); }, { maxPerSecond: 2000, onClose: () => { doubt = true; } });
       w.on('error', () => { doubt = true; });
       w.unref?.();   // a watch alone never keeps a process alive
       ready();
@@ -196,7 +222,7 @@ export function watchTree(root, cb, { skip = /(^|[\\/])(\.git|node_modules|\.cac
     if (closed || watchers.has(dir) || (dir !== root && skip.test(rel(dir)))) return;
     if (watchers.size >= maxDirs) { doubt = true; return; }   // a folder that is not watched: the list cannot be believed for long
     let w;
-    try { w = fs.watch(dir, (ev, f) => onEvent(dir, f, ev)); }
+    try { w = guardedWatch(dir, null, (ev, f) => onEvent(dir, f, ev), { onClose: why => { if (watchers.get(dir) === w) { watchers.delete(dir); inodes.delete(dir); } if (why === 'storm' || dir === root) doubt = true; } }); }
     catch (e) { if (e.code !== 'ENOENT') doubt = true; return; }   // a folder that vanished is not a failure; one that could not be watched is
     w.unref?.();
     w.on('error', () => { try { w.close(); } catch {} if (watchers.get(dir) === w) { watchers.delete(dir); inodes.delete(dir); if (fs.existsSync(dir)) doubt = true; } });

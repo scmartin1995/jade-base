@@ -23,7 +23,7 @@ import * as router from './core/router.js';
 import * as auth from './core/auth.js';
 import os from 'node:os';
 import { bus, emit } from './core/bus.js';
-import { debounce, watchTree } from './core/util.js';
+import { debounce, watchTree, guardedWatch } from './core/util.js';
 import { readBody } from './core/body.js';
 import { staticTarget } from './core/static.js';
 import { sseLine } from './core/redact.js';
@@ -191,7 +191,8 @@ const envText = () => { try { return fs.readFileSync(path.join(config.JADE_HOME,
 let lastEnv = envText();
 const providerChanged = debounce(() => { const now = envText(); if (now === lastEnv) return; lastEnv = now; warm.shutdown(); engines.refresh(); }, 400);
 const claudeChanged = debounce(() => engines.refresh(), 1500);
-try { fs.watch(config.claudeJson(), claudeChanged); } catch {}
+const watchClaudeJson = () => { try { guardedWatch(config.claudeJson(), null, claudeChanged, { onClose: () => { const t = setTimeout(watchClaudeJson, 10000); t.unref?.(); } }); } catch {} };
+watchClaudeJson();
 watchDir(config.JADE_HOME, (ev, f) => {
   const rel = String(f).split(path.sep);
   if (rel[0] === '.state' || String(f).endsWith('.tmp')) return;
