@@ -47,7 +47,7 @@ test('a matched skill goes in by name, description and file, not as its full tex
   assert.equal(skills.promptBlock([]), '');
 });
 
-test('the first turn sends all the context; the next sends only what changed', { skip: process.platform === 'win32' && 'not checked on Windows: the stand-in is a .cmd shim, and stopping and restarting the worker there is untried', timeout: 20000 }, async () => {
+test('the first turn sends all the context; the next sends only what changed', { timeout: 20000 }, async () => {
   const first = warm.contextFor('t1', settings, parts);
   assert.equal(first.kept.length, 0, 'a new chat has been given nothing yet');
   await warm.turn('t1', settings, { prompt: first.prompt, accepted: first.remember });
@@ -62,7 +62,7 @@ test('the first turn sends all the context; the next sends only what changed', {
   warm.shutdown();
 });
 
-test('a different chat, a restarted worker, or changed settings gets everything again', { skip: process.platform === 'win32' && 'not checked on Windows: the stand-in is a .cmd shim, and stopping and restarting the worker there is untried', timeout: 20000 }, async () => {
+test('a different chat, a restarted worker, or changed settings gets everything again', { timeout: 20000 }, async () => {
   const a = warm.contextFor('t2', settings, parts);
   await warm.turn('t2', settings, { prompt: a.prompt, accepted: a.remember });
   assert.equal(warm.contextFor('t3', settings, parts).kept.length, 0, 'another chat has its own worker');
@@ -72,7 +72,7 @@ test('a different chat, a restarted worker, or changed settings gets everything 
   warm.shutdown();
 });
 
-test('what a worker is told it has seen is recorded only when the turn is accepted', { skip: process.platform === 'win32' && 'not checked on Windows: the stand-in is a .cmd shim, and stopping and restarting the worker there is untried', timeout: 20000 }, async () => {
+test('what a worker is told it has seen is recorded only when the turn is accepted', { timeout: 20000 }, async () => {
   const c = warm.contextFor('t4', settings, parts);   // computed, but never sent
   assert.equal(warm.contextFor('t4', settings, parts).kept.length, 0, 'planning a turn does not count as having sent it');
   await warm.turn('t4', settings, { prompt: c.prompt, accepted: c.remember });

@@ -3,7 +3,7 @@
 // Claude Code can also reach Claude through Amazon Bedrock or a company gateway: see provider.js.
 //
 // Detection (is it installed, signed in, which connectors) runs in the background: nothing here ever blocks the server.
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import path from 'node:path';
@@ -156,7 +156,16 @@ export function spawnCli(bin, args, opts) {
   const env = { ...provider.scrub({ ...process.env }), ...provider.env(), MCP_TOOL_TIMEOUT: String(11 * 60e3), CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: '1', ...(opts.env || {}) }; // a permission question may wait on the user
   delete env.JADE_TOKEN; // the server's secret never reaches a Claude process (or the commands it runs); only the permission tool is given it, in its own MCP env
   delete env.CLAUDECODE; // allow running even when Jade itself was started from inside Claude Code
-  return spawn(bin, shell ? args.map(q) : args, { ...opts, shell, env, windowsHide: true });
+  const child = spawn(bin, shell ? args.map(q) : args, { ...opts, shell, env, windowsHide: true });
+  if (shell) {
+    // A .cmd shim is run through cmd.exe, and stopping that alone leaves the program it started (and its pipes) running: stop the whole tree
+    const stop = child.kill.bind(child);
+    child.kill = (signal) => {
+      try { if (child.exitCode === null && child.pid && spawnSync('taskkill', ['/pid', String(child.pid), '/t', '/f'], { stdio: 'ignore', windowsHide: true }).status === 0) return true; } catch { /* fall back */ }
+      return stop(signal);
+    };
+  }
+  return child;
 }
 
 let swept = false;
