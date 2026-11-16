@@ -5,20 +5,20 @@ import assert from 'node:assert/strict';
 import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
+import { writeStub } from './helpers/stub.js';
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-token-test-'));
 const bin = path.join(dir, 'bin');
 fs.mkdirSync(bin);
 const log = path.join(dir, 'prompts.jsonl');
-fs.writeFileSync(path.join(bin, 'claude'), `#!${process.execPath}
-const fs = require('node:fs');
+writeStub(bin, 'claude', `const fs = require('node:fs');
 const rl = require('node:readline').createInterface({ input: process.stdin });
 rl.on('line', l => {
   fs.appendFileSync(${JSON.stringify(log)}, JSON.stringify(JSON.parse(l).message.content) + '\\n');
   console.log(JSON.stringify({ type: 'system', subtype: 'init', model: 'stand-in' }));
   console.log(JSON.stringify({ type: 'result', result: 'ok' }));
 });
-`, { mode: 0o755 });
+`);
 process.env.PATH = bin + path.delimiter + process.env.PATH;
 process.env.JADE_HOME = path.join(dir, 'home');
 process.env.JADE_CLAUDE_HOME = process.env.JADE_HOME + '/claude-home';   // never read the real ~/.claude
@@ -47,7 +47,7 @@ test('a matched skill goes in by name, description and file, not as its full tex
   assert.equal(skills.promptBlock([]), '');
 });
 
-test('the first turn sends all the context; the next sends only what changed', { skip: process.platform === 'win32', timeout: 20000 }, async () => {
+test('the first turn sends all the context; the next sends only what changed', { skip: process.platform === 'win32' && 'not checked on Windows: the stand-in is a .cmd shim, and stopping and restarting the worker there is untried', timeout: 20000 }, async () => {
   const first = warm.contextFor('t1', settings, parts);
   assert.equal(first.kept.length, 0, 'a new chat has been given nothing yet');
   await warm.turn('t1', settings, { prompt: first.prompt, accepted: first.remember });
@@ -62,7 +62,7 @@ test('the first turn sends all the context; the next sends only what changed', {
   warm.shutdown();
 });
 
-test('a different chat, a restarted worker, or changed settings gets everything again', { skip: process.platform === 'win32', timeout: 20000 }, async () => {
+test('a different chat, a restarted worker, or changed settings gets everything again', { skip: process.platform === 'win32' && 'not checked on Windows: the stand-in is a .cmd shim, and stopping and restarting the worker there is untried', timeout: 20000 }, async () => {
   const a = warm.contextFor('t2', settings, parts);
   await warm.turn('t2', settings, { prompt: a.prompt, accepted: a.remember });
   assert.equal(warm.contextFor('t3', settings, parts).kept.length, 0, 'another chat has its own worker');
@@ -72,7 +72,7 @@ test('a different chat, a restarted worker, or changed settings gets everything 
   warm.shutdown();
 });
 
-test('what a worker is told it has seen is recorded only when the turn is accepted', { skip: process.platform === 'win32', timeout: 20000 }, async () => {
+test('what a worker is told it has seen is recorded only when the turn is accepted', { skip: process.platform === 'win32' && 'not checked on Windows: the stand-in is a .cmd shim, and stopping and restarting the worker there is untried', timeout: 20000 }, async () => {
   const c = warm.contextFor('t4', settings, parts);   // computed, but never sent
   assert.equal(warm.contextFor('t4', settings, parts).kept.length, 0, 'planning a turn does not count as having sent it');
   await warm.turn('t4', settings, { prompt: c.prompt, accepted: c.remember });

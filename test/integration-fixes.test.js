@@ -142,7 +142,7 @@ test('listing meetings and dashboards for a project leaves its folder untouched'
 function await_(fn) { try { fn(); return 'ok'; } catch { return 'refused'; } }
 
 // ---------------------------------------------------------------- 8 .state
-test('the data folder\'s .state is owner-only from the first load, and an older one is tightened', { skip: process.platform === 'win32' }, () => {
+test('the data folder\'s .state is owner-only from the first load, and an older one is tightened', { skip: process.platform === 'win32' && 'not checked on Windows: file modes (owner-only) do not exist there' }, () => {
   config.load();
   assert.equal(fs.statSync(config.STATE).mode & 0o777, 0o700);
   const fresh = path.join(tmp, 'fresh-home');

@@ -6,16 +6,16 @@ import assert from 'node:assert/strict';
 import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
+import { writeStub } from './helpers/stub.js';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-allow-'));
 const bin = path.join(tmp, 'bin');
 fs.mkdirSync(bin);
 // a stand-in `claude`: it only has to be found and to answer a run
-fs.writeFileSync(path.join(bin, 'claude'), `#!${process.execPath}
-const a = process.argv.slice(2);
+writeStub(bin, 'claude', `const a = process.argv.slice(2);
 if (a[0] !== '-p') { if (a[0] === 'auth') process.stdout.write('{}'); process.exit(0); }
 process.stdin.on('data', () => {}); process.stdin.on('end', () => console.log(JSON.stringify({ type: 'result', result: 'done', is_error: false })));
-`, { mode: 0o755 });
+`);
 process.env.PATH = bin + path.delimiter + process.env.PATH;
 process.env.JADE_HOME = path.join(tmp, 'home');
 process.env.JADE_CLAUDE_HOME = path.join(tmp, 'claude');

@@ -7,19 +7,19 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { waitFor } from './helpers/server.js';
+import { writeStub } from './helpers/stub.js';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-engpub-'));
 const bin = path.join(tmp, 'bin');
 fs.mkdirSync(bin);
 // the stand-in: --version answers; `auth` and `mcp` answer nothing; any run prints an error with a key in it, so the masking is seen
-fs.writeFileSync(path.join(bin, 'claude'), `#!${process.execPath}
-const a = process.argv.slice(2);
+writeStub(bin, 'claude', `const a = process.argv.slice(2);
 if (a[0] === '--version') { console.log('9.9.9 (stand-in)'); process.exit(0); }
 if (a[0] === 'auth') { process.stdout.write('{}'); process.exit(0); }
 if (a[0] === 'mcp') process.exit(0);
 require('fs').appendFileSync(${JSON.stringify(path.join(tmp, 'env.json'))}, JSON.stringify({ argv: a, env: process.env }) + '\\n');
 process.stdin.resume(); process.stdin.on('end', () => { console.error('Error: 401 invalid key sk-standinsecretkey123456 for gateway'); process.exit(1); });
-`, { mode: 0o755 });
+`);
 process.env.PATH = bin + path.delimiter + process.env.PATH;
 process.env.JADE_HOME = path.join(tmp, 'home');
 process.env.JADE_CLAUDE_HOME = path.join(tmp, 'claude');

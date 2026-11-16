@@ -6,15 +6,15 @@ import assert from 'node:assert/strict';
 import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
+import { writeStub } from './helpers/stub.js';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-hard-'));
 const bin = path.join(tmp, 'bin');
 fs.mkdirSync(bin);
-fs.writeFileSync(path.join(bin, 'claude'), `#!${process.execPath}
-const a = process.argv.slice(2);
+writeStub(bin, 'claude', `const a = process.argv.slice(2);
 if (a[0] !== '-p') { if (a[0] === 'auth') process.stdout.write('{}'); process.exit(0); }
 process.stdin.on('data', () => {}); process.stdin.on('end', () => { let r = 'done'; try { r = require('fs').readFileSync(${JSON.stringify(path.join(tmp, 'reply.txt'))}, 'utf8'); } catch {} console.log(JSON.stringify({ type: 'result', result: r, is_error: false })); });
-`, { mode: 0o755 });
+`);
 process.env.PATH = bin + path.delimiter + process.env.PATH;
 process.env.JADE_HOME = path.join(tmp, 'home');
 process.env.JADE_CLAUDE_HOME = path.join(tmp, 'claude');
@@ -117,7 +117,8 @@ test('an agent of a module that is switched off cannot be started by any route',
 test('claude is refused its own Read tool on engine.env and the .state folder, and nothing else in the argument list moves', () => {
   const ro = engines.claudeArgs({});
   const i = ro.indexOf('--disallowedTools');
-  const root = '/' + HOME.replace(/\\/g, '/');
+  const q = HOME.replace(/\\/g, '/'), drive = /^([A-Za-z]):(\/.*)?$/.exec(q);
+  const root = drive ? `//${drive[1].toLowerCase()}${drive[2] || ''}` : '/' + q;   // Claude Code's form for a Windows drive is //c/...
   assert.deepEqual(ro.slice(i, i + 4), ['--disallowedTools', 'Bash,Edit,Write,NotebookEdit', `Read(${root}/engine.env)`, `Read(${root}/.state/**)`]);
   const ed = engines.claudeArgs({ edits: true, job: 'j' });
   const k = ed.indexOf('--disallowedTools');
@@ -234,10 +235,13 @@ test('Windows details: PowerShell strings do not expand, more file types count a
   assert.equal(engines.quoteCmdArg('Read(//c/x)'), '"Read(//c/x)"');
   assert.equal(engines.quoteCmdArg('Read,Glob'), '"Read,Glob"');
   assert.equal(engines.quoteCmdArg('plain'), 'plain');
-  // the PDF helpers
+});
+
+// The real pdftotext and pdfinfo are .exe files on Windows; a stand-in there would be a .cmd shim, which Node will not start without a shell.
+test('the PDF helpers get an absolute path and --', { skip: process.platform === 'win32' && 'not checked on Windows: a stand-in for the .exe tools would be a .cmd shim, which Node cannot start without a shell' }, async () => {
   const rec = path.join(tmp, 'pdf-args.txt');
-  const stub = n => put(path.join(bin, n), `#!${process.execPath}\nrequire('fs').appendFileSync(${JSON.stringify(rec)}, JSON.stringify(process.argv.slice(2)) + '\\n'); console.log('Pages: 1\\nhello');\n`);
-  stub('pdftotext'); stub('pdfinfo'); fs.chmodSync(path.join(bin, 'pdftotext'), 0o755); fs.chmodSync(path.join(bin, 'pdfinfo'), 0o755);
+  const stub = n => writeStub(bin, n, `require('fs').appendFileSync(${JSON.stringify(rec)}, JSON.stringify(process.argv.slice(2)) + '\\n'); console.log('Pages: 1\\nhello');\n`);
+  stub('pdftotext'); stub('pdfinfo');
   const extract = await import('../server/core/extract.js');
   const cwd = process.cwd();
   process.chdir(tmp);

@@ -91,7 +91,7 @@ test('saving a note updates that note only (the watcher), and an unchanged file 
   } finally { memory.unwatch(); }
 });
 
-test('a text-less PDF is read once, not on every pass', { skip: process.platform === 'win32' }, async () => {
+test('a text-less PDF is read once, not on every pass', { skip: process.platform === 'win32' && 'not checked on Windows: Node cannot start a .cmd stand-in for pdftotext without a shell (the real one is an .exe)' }, async () => {
   const bin = path.join(t.root, 'pdfbin'), log = path.join(t.root, 'pdftotext.log');
   fs.mkdirSync(bin, { recursive: true });
   fs.writeFileSync(path.join(bin, 'pdftotext'), `#!/bin/sh\necho x >> "${log}"\nexit 0\n`, { mode: 0o755 });   // answers with no text, as for a scan

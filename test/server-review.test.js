@@ -9,7 +9,7 @@ import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-srvrev-'));
@@ -77,7 +77,7 @@ test('one writer for state files: flushed, temp file removed on failure, and it 
 
 test('the state files are all saved by that one writer (no second temp-and-rename copy in the server)', () => {
   const own = [];
-  const walk = d => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) walk(p); else if (/\.(js|mjs)$/.test(e.name) && /renameSync\(tmp/.test(fs.readFileSync(p, 'utf8'))) own.push(path.relative(ROOT, p)); } };
+  const walk = d => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) walk(p); else if (/\.(js|mjs)$/.test(e.name) && /renameSync\(tmp/.test(fs.readFileSync(p, 'utf8'))) own.push(path.relative(ROOT, p).split(path.sep).join('/')); } };
   walk(path.join(ROOT, 'server'));
   // util.js is the writer; transcripts.js (a streamed upload) names its own temp file as it receives bytes
   assert.deepEqual(own.filter(f => f !== 'server/core/util.js' && f !== 'server/core/transcripts.js'), [], 'these files carry their own writer: ' + own.join(', '));
@@ -110,7 +110,7 @@ test('the single old chat file moved at a failed start is not moved a second tim
   fs.mkdirSync(state, { recursive: true });
   const turns = [{ role: 'user', text: 'hello', at: '2026-01-01T00:00:00Z' }, { role: 'assistant', text: 'hi', at: '2026-01-01T00:00:01Z' }];
   const run = () => spawnSync(process.execPath, ['--input-type=module', '-e',
-    `const s = await import(${JSON.stringify(path.join(ROOT, 'server/core/store.js'))}); const c = await import(${JSON.stringify(path.join(ROOT, 'server/core/config.js'))}); c.load(); s.init(); console.log(JSON.stringify(s.listThreads().map(t => t.id)));`],
+    `const s = await import(${JSON.stringify(pathToFileURL(path.join(ROOT, 'server/core/store.js')).href)}); const c = await import(${JSON.stringify(pathToFileURL(path.join(ROOT, 'server/core/config.js')).href)}); c.load(); s.init(); console.log(JSON.stringify(s.listThreads().map(t => t.id)));`],
     { env: { ...process.env, JADE_HOME: path.join(tmp, 'migrate'), JADE_CLAUDE_HOME: path.join(tmp, 'claude2') }, encoding: 'utf8' });
   const st = path.join(tmp, 'migrate', '.state'); fs.mkdirSync(st, { recursive: true });
   fs.writeFileSync(path.join(st, 'chat.json'), JSON.stringify({ turns }));

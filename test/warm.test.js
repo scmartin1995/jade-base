@@ -6,12 +6,12 @@ import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
 import { waitFor } from './helpers/server.js';
+import { writeStub } from './helpers/stub.js';
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-warm-test-'));
 const bin = path.join(dir, 'bin');
 fs.mkdirSync(bin);
-fs.writeFileSync(path.join(bin, 'claude'), `#!${process.execPath}
-const rl = require('node:readline').createInterface({ input: process.stdin });
+writeStub(bin, 'claude', `const rl = require('node:readline').createInterface({ input: process.stdin });
 let n = 0;
 rl.on('line', () => {
   const id = ++n;
@@ -19,7 +19,7 @@ rl.on('line', () => {
   console.log(JSON.stringify({ type: 'system', subtype: 'init', model: 'stand-in' }));
   setTimeout(() => console.log(JSON.stringify({ type: 'result', result: 'answer ' + id })), 600);
 });
-`, { mode: 0o755 });
+`);
 process.env.PATH = bin + path.delimiter + process.env.PATH;
 process.env.JADE_HOME = path.join(dir, 'home');
 process.env.JADE_CLAUDE_HOME = process.env.JADE_HOME + '/claude-home';   // never read the real ~/.claude
@@ -30,7 +30,7 @@ const warm = await import('../server/core/warm.js');
 
 const settings = { connectors: [], dirs: [], model: '', system: 'x', effort: 'low', edits: false };
 
-test('a second message waits for the first reply instead of killing it', { skip: process.platform === 'win32', timeout: 15000 }, async () => {
+test('a second message waits for the first reply instead of killing it', { skip: process.platform === 'win32' && 'not checked on Windows: the stand-in is a .cmd shim, and stopping a reply there leaves the node process behind (untried)', timeout: 15000 }, async () => {
   const first = warm.turn('t1', settings, { prompt: 'one' });
   await waitFor(() => fs.existsSync(path.join(dir, 'received.log')), { message: 'the first message to reach the engine' });   // so the first is still being answered
   const second = warm.turn('t1', settings, { prompt: 'two' });
@@ -42,14 +42,14 @@ test('a second message waits for the first reply instead of killing it', { skip:
   warm.shutdown();
 });
 
-test('different chats do not stop each other', { skip: process.platform === 'win32', timeout: 15000 }, async () => {
+test('different chats do not stop each other', { skip: process.platform === 'win32' && 'not checked on Windows: the stand-in is a .cmd shim, and stopping a reply there leaves the node process behind (untried)', timeout: 15000 }, async () => {
   const [a, b] = await Promise.all([warm.turn('t2', settings, { prompt: 'x' }), warm.turn('t3', settings, { prompt: 'y' })]);
   assert.equal(a.text, 'answer 1'); assert.equal(b.text, 'answer 1');
   warm.shutdown();
 });
 
 // A reply may take as long as it needs while the engine shows signs of life; it is stopped only after STUCK_MS with none.
-test('a long reply that keeps working is not cut off, and a silent one is stopped with a plain message', { skip: process.platform === 'win32', timeout: 20000 }, async () => {
+test('a long reply that keeps working is not cut off, and a silent one is stopped with a plain message', { skip: process.platform === 'win32' && 'not checked on Windows: the stand-in is a .cmd shim, and stopping a reply there leaves the node process behind (untried)', timeout: 20000 }, async () => {
   // (the timing itself, 15 minutes, is not waited for here; the stuck message states it, and a reply that keeps working is the test above)
   assert.equal(typeof warm.StuckError, 'function');
   const e = new warm.StuckError();

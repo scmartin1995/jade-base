@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
+import { NO_READ_ONLY } from './helpers/env.js';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-corrupt-'));
 process.env.JADE_HOME = path.join(tmp, 'home');
@@ -76,7 +77,7 @@ test('an unreadable data-folder list is copied aside before it is replaced', () 
   assert.equal(fs.readFileSync(path.join(path.dirname(file), copy), 'utf8'), '[{"id":"zz"');
 });
 
-test('moving a record out of a project file writes the data folder first', { skip: isRoot }, () => {
+test('moving a record out of a project file writes the data folder first', { skip: NO_READ_ONLY || isRoot }, () => {
   const dir = folder('offline');
   const p = store.saveProject({ name: 'Offline', folders: [dir] });
   const a = store.addAction({ text: 'travels', project: p.id });
@@ -102,7 +103,7 @@ test('a note whose file cannot be read is not saved over', () => {
   assert.equal(fs.existsSync(path.join(store.dirs.notes, n.id + '.md')), false, 'no stray copy either');
 });
 
-test('a note falls back to the data folder before its project copy is removed', { skip: isRoot }, () => {
+test('a note falls back to the data folder before its project copy is removed', { skip: NO_READ_ONLY || isRoot }, () => {
   const dir = folder('notefall');
   const p = store.saveProject({ name: 'NoteFall', folders: [dir] });
   const n = store.saveNote({ title: 'Stay', body: 'v1', project: p.id });

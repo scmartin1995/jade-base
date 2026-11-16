@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
+import { NO_READ_ONLY } from './helpers/env.js';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-locations-'));
 process.env.JADE_HOME = path.join(tmp, 'home');
@@ -49,7 +50,7 @@ test('pathFor never creates; dirFor creates, and falls back to the data folder f
   assert.equal(fs.existsSync(path.join(tmp, 'not-there')), false);
 });
 
-test('a folder that cannot be written to is reported', { skip: process.getuid?.() === 0 }, () => {
+test('a folder that cannot be written to is reported', { skip: NO_READ_ONLY || process.getuid?.() === 0 }, () => {
   const dir = folder('p3'); fs.chmodSync(dir, 0o500);
   try {
     assert.equal(L.folderProblem(dir), 'cannot be written to');
@@ -60,7 +61,7 @@ test('a folder that cannot be written to is reported', { skip: process.getuid?.(
   } finally { fs.chmodSync(dir, 0o700); }
 });
 
-test('dirFor tells onFail why when the project folder refuses, and uses the data folder', { skip: process.getuid?.() === 0 }, () => {
+test('dirFor tells onFail why when the project folder refuses, and uses the data folder', { skip: NO_READ_ONLY || process.getuid?.() === 0 }, () => {
   const dir = folder('p4'), jade = path.join(dir, 'Jade'); fs.mkdirSync(jade); fs.chmodSync(jade, 0o500);
   let heard = null;
   try {

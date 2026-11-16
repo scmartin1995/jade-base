@@ -66,7 +66,8 @@ test('browser finder: $CHROMIUM wins, then the usual places for each system, and
     const edge = path.join('C:\\Program Files (x86)', 'Microsoft\\Edge\\Application\\msedge.exe');
     assert.equal(findBrowser({ 'ProgramFiles(x86)': 'C:\\Program Files (x86)' }, has([edge])), edge);
     as('linux');
-    assert.equal(findBrowser({ PATH: '/opt/b' + path.delimiter + '/usr/local/bin' }, has(['/usr/local/bin/google-chrome'])), '/usr/local/bin/google-chrome');
+    const chrome = path.join('/usr/local/bin', 'google-chrome');   // joined with this system's separator
+    assert.equal(findBrowser({ PATH: '/opt/b' + path.delimiter + '/usr/local/bin' }, has([chrome])), chrome);
     assert.equal(findBrowser({ PATH: '/opt/b' }, has([])), '');
   } finally { Object.defineProperty(process, 'platform', was); }
 });

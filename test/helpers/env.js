@@ -18,3 +18,6 @@ export function tmpHome(prefix = 'jade-test-', { apply = false } = {}) {
 
 /** Write a file, making its folders first. Returns the path. */
 export const put = (f, text = 'x') => { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, text); return f; };
+
+/** A skip reason for a test that makes a file or folder read-only with chmod: Windows ignores that, so nothing would be refused there. */
+export const NO_READ_ONLY = process.platform === 'win32' && 'not checked on Windows: chmod cannot make a file or folder read-only there';

@@ -7,12 +7,12 @@ import assert from 'node:assert/strict';
 import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
+import { writeStub } from './helpers/stub.js';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-dreams-'));
 const bin = path.join(tmp, 'bin'), dump = path.join(tmp, 'runs.jsonl'), replyFile = path.join(tmp, 'reply.json');
 fs.mkdirSync(bin);
-fs.writeFileSync(path.join(bin, 'claude'), `#!${process.execPath}
-const fs = require('node:fs');
+writeStub(bin, 'claude', `const fs = require('node:fs');
 const a = process.argv.slice(2);
 if (a[0] !== '-p') { if (a[0] === 'auth') process.stdout.write('{}'); process.exit(0); }
 let prompt = '';
@@ -23,7 +23,7 @@ process.stdin.on('end', () => {
   fs.appendFileSync(${JSON.stringify(dump)}, JSON.stringify({ argv: a, system, prompt }) + '\\n');
   console.log(JSON.stringify({ type: 'result', result: fs.readFileSync(${JSON.stringify(replyFile)}, 'utf8'), is_error: false }));
 });
-`, { mode: 0o755 });
+`);
 process.env.PATH = bin + path.delimiter + process.env.PATH;
 process.env.JADE_HOME = path.join(tmp, 'home');
 process.env.JADE_CLAUDE_HOME = path.join(tmp, 'claude');

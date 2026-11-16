@@ -90,7 +90,7 @@ test('a user module that gives only an id and a name still loads, with the state
   assert.ok(m); assert.equal(m.order, 500); assert.equal(m.icon, 'cpu'); assert.equal(m.desc, '');
 });
 
-test('a module view file that is a link to the secret key is not served; a plain one is', { skip: process.platform === 'win32' }, async () => {
+test('a module view file that is a link to the secret key is not served; a plain one is', { skip: process.platform === 'win32' && 'not checked on Windows: a link needs rights an ordinary account lacks' }, async () => {
   await call('POST', '/api/modules/mine', { enabled: true });
   const r = await get('/modules/mine/views/key.json');
   assert.notEqual(r.status, 200); assert.ok(!(await r.text()).includes(KEY));
@@ -107,7 +107,7 @@ test('the folder picker never lists or opens .state, and the data folder listing
   assert.ok(!r.dirs.some(d => d.name === '.state'), 'the secrets folder is not offered');
 });
 
-test('an unreadable file on a file route is answered, never a crash', { skip: process.platform === 'win32' || (process.getuid && process.getuid() === 0) }, async () => {
+test('an unreadable file on a file route is answered, never a crash', { skip: (process.platform === 'win32' && 'not checked on Windows: chmod cannot make a file unreadable there') || (process.getuid && process.getuid() === 0) }, async () => {
   const f = path.join(HOME, 'locked.txt');
   fs.writeFileSync(f, 'x'); fs.chmodSync(f, 0);
   const r = await get('/api/files/raw?path=' + encodeURIComponent(f)).catch(() => null);
@@ -182,7 +182,7 @@ test('only claudesessions.js reads Claude Code session files', () => {
   assert.deepEqual(users, ['claudesessions.js']);
 });
 
-test('a second launcher does not take over the first one\'s pid file, and --stop stops the first', { skip: process.platform === 'win32' }, async () => {
+test('a second launcher does not take over the first one\'s pid file, and --stop stops the first', { skip: process.platform === 'win32' && 'not checked on Windows: the launcher in question is the Unix script' }, async () => {
   const lhome = path.join(tmp, 'lhome'), lport = await free();
   const env = { ...process.env, PATH: process.env.PATH, JADE_HOME: lhome, JADE_CLAUDE_HOME: path.join(tmp, 'lclaude'), JADE_PORT: String(lport), JADE_APP: ROOT };
   delete env.JADE_TOKEN;

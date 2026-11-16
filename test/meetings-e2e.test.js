@@ -9,6 +9,7 @@ import net from 'node:net';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { writeStub } from './helpers/stub.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FIX = path.join(ROOT, 'test/fixtures/meetings');
@@ -21,8 +22,7 @@ for (const d of [bin, dump, home, claudeHome, folder]) fs.mkdirSync(d, { recursi
 
 // The stand-in: anything that is not a `-p` run (version, auth) is answered with nothing; a judge run is written down
 // (argv and env) and answered with JSON made from expected.json, chosen by the shape of the schema it was asked for.
-fs.writeFileSync(path.join(bin, 'claude'), `#!${process.execPath}
-const fs = require('node:fs');
+writeStub(bin, 'claude', `const fs = require('node:fs');
 const a = process.argv.slice(2);
 if (a[0] !== '-p') { if (a[0] === 'auth') process.stdout.write('{}'); process.exit(0); }
 const exp = JSON.parse(fs.readFileSync(${JSON.stringify(path.join(FIX, 'warehouse-weekly-2026-11-10.expected.json'))}, 'utf8'));
@@ -48,7 +48,7 @@ process.stdin.on('end', () => {
   }
   process.stdout.write(JSON.stringify({ type: 'result', result: '', is_error: false, structured_output: out, modelUsage: { 'stand-in': {} }, total_cost_usd: 0 }) + '\\n');
 });
-`, { mode: 0o755 });
+`);
 
 // a gateway set-up, the way Settings keeps it
 const GATEWAY = 'http://127.0.0.1:9';

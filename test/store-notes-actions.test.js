@@ -6,6 +6,7 @@ import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
 import { parseFrontmatter } from '../server/core/util.js';
+import { NO_READ_ONLY } from './helpers/env.js';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-notes-'));
 process.env.JADE_HOME = path.join(tmp, 'home');
@@ -96,7 +97,7 @@ test('notes: the summaries and pages agree with the full list', () => {
   assert.equal(store.listNoteSummaries({ q: 'number 3 ' }).items.length >= 1, true, 'words in the first 220 characters are searched');
 });
 
-test('notes: a note that cannot be read is left out of the list and never saved over', () => {
+test('notes: a note that cannot be read is left out of the list and never saved over', { skip: NO_READ_ONLY }, () => {
   if (isRoot) return;
   const f = path.join(dataNotes, 'locked.md'); fs.writeFileSync(f, note('Locked')); fs.chmodSync(f, 0o000);
   try { same('unreadable'); assert.throws(() => store.saveNote({ id: 'locked', title: 'x' }), /could not be read/); }
@@ -144,7 +145,7 @@ test('a save that is cut short (a temporary file left beside the real one) chang
   same('leftovers'); store.addAction({ text: 'works after' }); same('save after leftovers');
 });
 
-test('a failed write leaves the old file whole and no temporary file', { skip: isRoot && 'cannot make a folder read-only for root' }, () => {
+test('a failed write leaves the old file whole and no temporary file', { skip: NO_READ_ONLY || (isRoot && 'cannot make a folder read-only for root') }, () => {
   const d = folder('readonly'); const p = store.saveProject({ name: 'Locked', folders: [d] });
   const x = store.addAction({ text: 'kept safe', project: p.id });
   const file = path.join(d, 'Jade', 'actions.json'), before = fs.readFileSync(file, 'utf8');

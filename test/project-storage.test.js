@@ -5,6 +5,7 @@ import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
 import { waitFor } from './helpers/server.js';
+import { NO_READ_ONLY } from './helpers/env.js';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-storage-'));
 process.env.JADE_HOME = path.join(tmp, 'home');
@@ -115,7 +116,7 @@ test('a missing folder falls back to the data folder with a notice', () => {
   assert.equal('storageNotice' in JSON.parse(fs.readFileSync(path.join(store.dirs.projects, p.id + '.json'), 'utf8')), false);
 });
 
-test('a read-only folder falls back, and the project returns to its folder once it can be written', { skip: isRoot }, () => {
+test('a read-only folder falls back, and the project returns to its folder once it can be written', { skip: NO_READ_ONLY || isRoot }, () => {
   const d = folder('ro');
   const p = store.saveProject({ name: 'Readonly', folders: [d] });
   fs.chmodSync(d, 0o555);

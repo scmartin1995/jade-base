@@ -6,10 +6,11 @@ import assert from 'node:assert/strict';
 import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
+import { writeStub } from './helpers/stub.js';
 
 // prepare() turns editing on only when an engine is installed; a stand-in "claude" on PATH gives it one.
 const bin = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-output-bin-'));
-fs.writeFileSync(path.join(bin, 'claude'), '#!/bin/sh\nexit 0\n', { mode: 0o755 });
+writeStub(bin, 'claude', 'process.exit(0);\n');
 process.env.PATH = bin + path.delimiter + process.env.PATH;
 process.env.JADE_HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-output-'));
 process.env.JADE_CLAUDE_HOME = process.env.JADE_HOME + '/claude-home';   // never read the real ~/.claude
@@ -50,7 +51,7 @@ test('the chosen folder is somewhere Jade may edit, and deleting there asks firs
   assert.equal((await del).behavior, 'deny');
 });
 
-test('the instruction names the chosen folder and tells the model to use a sub-folder, with no reference to a wiki rule section', { skip: process.platform === 'win32' }, async () => {
+test('the instruction names the chosen folder and tells the model to use a sub-folder, with no reference to a wiki rule section', async () => {
   const prep = await agents.prepare({ ...agents.get('jade'), context: [] }, { message: 'hi', thread: 't' }, 'claude');
   assert.ok(prep.system.includes(notes));
   assert.match(prep.system, /put new files in a sub-folder, not loose at its top level/);

@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
+import { NO_READ_ONLY } from './helpers/env.js';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-chats-'));
 process.env.JADE_HOME = path.join(tmp, 'home');
@@ -145,7 +146,7 @@ test('the single-conversation chat.json of the earliest builds moves over once',
   assert.equal(fs.existsSync(path.join(s2, 'home', '.state', 'chat.json')), false);
 });
 
-test('if the move cannot be done, the old file is kept as it was and nothing is lost', { skip: isRoot && 'the folder cannot be made read-only for root' }, async () => {
+test('if the move cannot be done, the old file is kept as it was and nothing is lost', { skip: NO_READ_ONLY || (isRoot && 'the folder cannot be made read-only for root') }, async () => {
   const s3 = path.join(tmp, 'third'); const st = path.join(s3, 'home', '.state');
   fs.mkdirSync(path.join(st, 'chats'), { recursive: true });
   fs.writeFileSync(path.join(st, 'chats.json'), oldText);

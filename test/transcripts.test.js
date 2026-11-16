@@ -102,7 +102,8 @@ test('.docx goes through extract.js and keeps its speakers', async () => {
   assert.equal(r.date, '2026-09-14');
 });
 
-const hasPdf = !!spawnSync('which', ['pdftotext']).stdout.length;
+const { which } = await import('../server/core/util.js');
+const hasPdf = !!which('pdftotext') && !!which('pdfinfo');   // the page count needs both tools
 test('.pdf is read; a PDF with too many pages is refused, not trimmed', { skip: !hasPdf }, async () => {
   const f = work('minutes.pdf'); fs.writeFileSync(f, pdf(['Ola Berg: Plan agreed.']));
   const r = await T.read(f);
