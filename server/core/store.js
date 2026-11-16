@@ -134,7 +134,7 @@ let recheck = null, rechecks = 0;
 function recheckSoon() {
   rechecks = 60;
   if (recheck) return;
-  recheck = setInterval(() => { syncWatches(); if (--rechecks <= 0) { clearInterval(recheck); recheck = null; } }, 5000);
+  recheck = setInterval(() => { try { syncWatches(); } catch {} if (--rechecks <= 0) { clearInterval(recheck); recheck = null; } }, 5000);
   recheck.unref?.();
 }
 function watchDirOnce(dir, fn) {
