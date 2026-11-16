@@ -12,7 +12,7 @@ import { findBrowser as gateFinder } from '../scripts/gates/lib.mjs';
 
 const has = (...files) => f => files.includes(f);
 const KEY = 'k3y-should-never-appear-9f2c';
-const FILE_URL = 'file:///home/someone/JadeBase/.state/open.html';   // what opener.js gives the launcher: no key in the address
+const FILE_URL = 'file:///data/JadeBase/.state/open.html';   // what opener.js gives the launcher: no key in the address
 
 test('the gates and the launcher share one browser finder', () => {
   assert.equal(gateFinder, findBrowser);
@@ -38,12 +38,12 @@ test('finder, Linux: the usual places, then PATH; Chrome, Chromium, Edge and Bra
 
 test('finder, macOS: /Applications and ~/Applications bundles', () => {
   const sys = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-  assert.equal(findBrowser({ HOME: '/Users/p' }, has(sys), 'darwin'), sys);
-  const mine = '/Users/p/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge';
-  assert.equal(findBrowser({ HOME: '/Users/p' }, has(mine), 'darwin'), mine);
+  assert.equal(findBrowser({ HOME: '/Volumes/mac' }, has(sys), 'darwin'), sys);
+  const mine = '/Volumes/mac/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge';
+  assert.equal(findBrowser({ HOME: '/Volumes/mac' }, has(mine), 'darwin'), mine);
   const brave = '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser';
-  assert.equal(findBrowser({ HOME: '/Users/p' }, has(brave), 'darwin'), brave);
-  assert.equal(findBrowser({ HOME: '/Users/p' }, has(), 'darwin'), '');
+  assert.equal(findBrowser({ HOME: '/Volumes/mac' }, has(brave), 'darwin'), brave);
+  assert.equal(findBrowser({ HOME: '/Volumes/mac' }, has(), 'darwin'), '');
 });
 
 test('finder, Windows: Program Files, Program Files (x86), LocalAppData; Edge even with a bare environment', () => {
@@ -81,7 +81,7 @@ test('app window command, Linux: the browser itself, --app with the file address
 
 test('app window command, macOS and Windows: the browser file itself, no class flag, no shell', () => {
   const mac = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-  const m = openPlan({ url: FILE_URL, env: { HOME: '/Users/p' }, exists: has(mac), platform: 'darwin' });
+  const m = openPlan({ url: FILE_URL, env: { HOME: '/Volumes/mac' }, exists: has(mac), platform: 'darwin' });
   assert.equal(m.command, mac);
   assert.deepEqual(m.args, [`--app=${FILE_URL}`, '--new-window', `--window-size=${WINDOW_SIZE}`]);
   const edge = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';

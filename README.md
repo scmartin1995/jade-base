@@ -13,13 +13,16 @@ Node 20 or newer, the Claude Code command line tool, and a way to reach Claude: 
 ```bash
 npm install -g @anthropic-ai/claude-code   # if you do not have it
 claude auth login                          # on a Claude plan
-npm start                                  # opens Jade in a window; also prints the start link
+npm start                                  # opens Jade in its own window; also prints the start link
+npm start -- --tab                         # open a tab in your browser instead of a window
 npm start -- --no-open                     # only prints the start link
 ```
 
 ### How you open Jade (the key)
 
 Jade keeps a **key** in `.state/token` in the data folder, readable only by you. On start, Jade prints one line in the terminal, `Open Jade: http://127.0.0.1:<port>/?key=…`, and shows nothing like it anywhere else (it is never written to a log). Opening that link gives your browser the key (through a short "Opening Jade" page) and moves straight on to `http://127.0.0.1:<port>/`, so the key does not stay in the address bar or history. The launchers do this for you: `npm start` and `scripts/jade` (Linux and macOS) and `scripts\jade.cmd` (Windows) open Jade with the key without showing it on a command line. If you open that address without the key (a bookmark, a new browser), you get a plain page saying Jade is running, with a box to paste the key or the whole link; or just start Jade again from its shortcut. A window that is already open keeps working when Jade restarts; the key does not change.
+
+**The window.** With Chrome, Chromium, Edge or Brave installed (Edge always is on Windows), Jade opens in its own window with no address bar, tabs or bookmarks, using your normal browser profile (so your password manager and zoom still work). The terminal says `Jade opened in its own window.` Without one of those browsers, or in Firefox or Safari, which have no such window, Jade opens a tab and says so. To always use a tab: `npm start -- --tab`, `JADE_WINDOW=tab`, or Settings → Look → Window (`window` in `config.json`). `JADE_BROWSER=/path/to/browser` picks the browser. Why it is a window and not a packaged app: `docs/adr/0019-app-window.md`.
 
 Your data lives in `~/JadeBase` (set `JADE_HOME` to use another folder, `JADE_PORT` for the port). Settings shows what Jade found.
 

@@ -37,10 +37,15 @@ Find the sentence that sounds like your problem. Each entry says what it means, 
 
 ### The window does not open, or opens blank
 
-**Means.** The launcher could not find an app-style browser window to open, or the browser opened a stale file.
-**Check.** The terminal may say `Open http://127.0.0.1:<port> in your browser, using the link Jade showed when it started.`
-**Fix.** Use the `Open Jade:` link from the terminal in any browser. On Linux, `scripts/jade` tries `chromium`, `google-chrome-stable`, then `xdg-open`; install one of them or open the link by hand.
-**Owner.** `jade.js` (`openBrowser`), `server/core/opener.js`, `scripts/jade`, `scripts/jade.cmd`.
+**Means.** The launcher could not start the browser as an app window, or the browser opened a stale file, or Jade opened a tab where you expected a window.
+**Check.** The terminal says one line: `Jade opened in its own window.`, `Jade opened in a browser tab.`, or `No Chrome, Edge, Chromium or Brave was found, so Jade opened in a browser tab.` If it says `Open http://127.0.0.1:<port> in your browser...`, nothing could be started. If the line says "own window" but you see nothing, the window may have opened inside a browser that was already running (look for it there or on another desktop).
+**Fix.** Install Chrome, Chromium, Edge or Brave (Firefox and Safari have no app window), or point `JADE_BROWSER` at one (`JADE_BROWSER=/path/to/chrome npm start`). Or use the `Open Jade:` link from the terminal in any browser.
+**Owner.** `jade.js` (`openBrowser`), `server/core/browser.js`, `server/core/opener.js`, `scripts/jade`, `scripts/jade.cmd`.
+
+### I want a tab in my browser, not a separate window
+
+**Fix.** Start with `npm start -- --tab`, or set `JADE_WINDOW=tab`, or choose "A tab in my browser" in Settings → Look → Window (`window` in `config.json`: `'app'` or `'tab'`). `--tab` beats `JADE_WINDOW`, which beats the setting. If a window is already open you can also just use any browser with the `Open Jade:` link.
+**Owner.** `server/core/browser.js` (`windowMode`), `server/core/config.js`.
 
 ### I changed a file and Jade did not notice
 

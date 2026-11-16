@@ -27,6 +27,9 @@ Jade's own folder, `~/JadeBase` unless `JADE_HOME` says otherwise. It holds the 
 _Also written_: `JADE_HOME` (code, `server/core/config.js`), "Jade home", "JadeBase" (README, Settings), "Jade data" (folder picker shortcut in `server/api.js`)
 _Avoid_: "home folder" (that is the person's own home folder, `~`)
 
+**App window**:
+Jade opened in a browser's own window with no address bar, tabs or bookmarks (Chromium's `--app` mode), instead of a tab. The setting `window` (`app` or `tab`) chooses; see `docs/adr/0019-app-window.md`.
+
 **State folder**:
 `.state` inside the data folder. Holds the key, run records, caches and per-run files; private to the PM's account. Constant `STATE` in `server/core/config.js`. Not for hand editing, except as `docs/TROUBLESHOOTING.md` says.
 

@@ -58,7 +58,7 @@ Short versions; the full list is in [GLOSSARY.md](../GLOSSARY.md).
 
 ## 1. How the app starts
 
-**Files:** `jade.js` (launcher), `server/index.js` (server), `server/core/auth.js` (key), `server/core/opener.js`, `server/core/gatepage.js`, `scripts/jade`, `scripts/jade.cmd`.
+**Files:** `jade.js` (launcher), `server/index.js` (server), `server/core/auth.js` (key), `server/core/opener.js`, `server/core/browser.js` (finds a browser, builds the app-window command), `server/core/gatepage.js`, `scripts/jade`, `scripts/jade.cmd`.
 
 **What happens.** `npm start` runs `jade.js`. It refuses to start if another launcher owns the same data folder, writes its process id to `.state/jade.pid`, then forks `server/index.js` and watches the server's own code. When a file in `server/`, `server/core/` or `server/modules/` (or a user module) really changes, it restarts the server, but waits until no run is going (the server reports the number of running jobs to it). A crash restarts the server up to five times in a row. `server/index.js` loads settings, starts the store and queue, imports `server/api.js`, starts the modules (`modules.init`), then listens on `127.0.0.1` only. The first request is answered at once: the memory index is built in the background (about 200 ms after the start, in short slices), and the folder watches are put in place in short turns, so a big project folder does not delay the first page. See [PERFORMANCE.md](PERFORMANCE.md). It prints the start link once, to a terminal only, never to a log.
 
