@@ -93,7 +93,8 @@ test('docs gate: a node --test command without the set-up import is refused, wit
 
 test('docs gate: the real documents contain no test command without the set-up, and test:one is a real script that carries it', () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
-  assert.match(pkg.scripts['test:one'], /--import \.\/test\/setup\.js/);
+  assert.equal(pkg.scripts['test:one'], 'node scripts/test.mjs');   // the runner carries the set-up import and lists the files itself (no glob, so it works on Node 20 and 22)
+  assert.match(fs.readFileSync(path.join(ROOT, 'scripts/test.mjs'), 'utf8'), /--import', '\.\/test\/setup\.js'/);
   assert.equal(gate(ROOT).problems.filter(p => /set-up import/.test(p)).length, 0);
 });
 

@@ -18,7 +18,7 @@ import crypto from 'node:crypto';
 const [root, out] = process.argv.slice(2).filter(a => !a.startsWith('--')).map(p => path.resolve(p));
 const PLAN = process.argv.includes('--plan');
 const [SHARD, SHARDS] = (/^--shard=(\d+)\/(\d+)$/.exec(process.argv.find(a => a.startsWith('--shard=')) || '') || [0, 1, 1]).slice(1).map(Number);
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-parity-'));
+const tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'jade-parity-')));   // the real path: on macOS /var is a link to /private/var
 const bin = path.join(tmp, 'bin'), dump = path.join(tmp, 'dump'), home = path.join(tmp, 'home');
 for (const d of [bin, dump, home]) fs.mkdirSync(d, { recursive: true });
 fs.writeFileSync(path.join(bin, 'claude'), `#!${process.execPath}
@@ -44,7 +44,7 @@ const PARENT = { CLAUDE_EFFORT: 'medium', HTTPS_PROXY: 'http://proxy.test:3128',
   SSL_CERT_FILE: '/certs/corp.pem', REQUESTS_CA_BUNDLE: '/certs/corp.pem', LANG: 'C.UTF-8', TZ: 'UTC' };
 // Names left out of the whole-environment comparison because they differ from machine to machine by nature (they hold temp folders
 // of this run). Everything else the child receives is compared. Keep this list short; README explains each name.
-const MACHINE_SPECIFIC = ['PATH', 'HOME', 'JADE_CLAUDE_HOME', 'TMPDIR', 'TEMP', 'TMP', 'PWD', 'OLDPWD', '_'];
+const MACHINE_SPECIFIC = ['PATH', 'HOME', 'JADE_CLAUDE_HOME', 'TMPDIR', 'TEMP', 'TMP', 'PWD', 'OLDPWD', '_', '__CF_USER_TEXT_ENCODING'];   // __CF_USER_TEXT_ENCODING: macOS adds it to every program it starts
 for (const k of Object.keys(process.env)) delete process.env[k];
 Object.assign(process.env, PARENT, { PATH: [bin, path.dirname(process.execPath), '/usr/bin', '/bin'].join(path.delimiter), HOME: home,
   JADE_HOME: path.join(tmp, 'jade'), JADE_CLAUDE_HOME: path.join(tmp, 'claude') });

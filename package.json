@@ -7,8 +7,8 @@
   "scripts": {
     "start": "node jade.js",
     "dev": "node jade.js --no-open",
-    "test": "node --test --import ./test/setup.js test/",
-    "test:one": "node --test --import ./test/setup.js",
+    "test": "node scripts/test.mjs",
+    "test:one": "node scripts/test.mjs",
     "bench": "node scripts/bench/bench.mjs",
     "gates": "node scripts/gates/imports.mjs && node scripts/gates/boot-smoke.mjs && node scripts/gates/pages.mjs && node scripts/gates/sample-module.mjs && node scripts/gates/hygiene.mjs && node scripts/gates/docs.mjs"
   },

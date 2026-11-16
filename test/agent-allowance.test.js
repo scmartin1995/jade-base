@@ -70,7 +70,7 @@ test('before it is allowed: listed, runnable by hand, but read-only, unscheduled
 test('allowing one agent is kept by its file, honours its keys and skills, and can be taken back', async () => {
   agentfiles.allow(FILE);
   const saved = JSON.parse(fs.readFileSync(path.join(config.STATE, 'agents-allowed.json'), 'utf8'));
-  assert.deepEqual(Object.keys(saved.files), [FILE], 'keyed by the file path');
+  assert.deepEqual(Object.keys(saved.files), [fs.realpathSync(FILE)], 'keyed by the file real path (on macOS the temp folder is reached through a link)');
   const a = agents.list().find(x => x.file === FILE);
   assert.equal(a.allowed, true); assert.equal(a.needsAllowance, false);
   assert.equal(a.edits, true); assert.equal(a.schedule, 'every 1h'); assert.equal(a.effort, 'max');

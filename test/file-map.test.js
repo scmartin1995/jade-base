@@ -119,6 +119,7 @@ test('a folder cut off at the limit: adding and changing stay incremental and ex
   for (let d = 0; d < 21; d++) { fs.mkdirSync(path.join(big, 'd' + d)); for (let i = 0; i < 1000; i++) fs.writeFileSync(path.join(big, 'd' + d, `f${i}.txt`), 'x'); }   // 21,000 files: past the limit
   const hourAgo = Date.now() / 1000 - 3600; for (const d of [big, ...fs.readdirSync(big).map(n => path.join(big, n))]) fs.utimesSync(d, hourAgo, hourAgo);   // old folders: the "changed a moment ago" check would otherwise re-read them all once
   store.saveProject({ name: 'Big', folders: [big] });
+  files.invalidate();   // the data folder just got the new project's file; do not wait for the system to say so (macOS may report it late), read the folders in full
   try {
     const first = await files.list();
     assert.ok(first.filter(f => f.rel.startsWith('d')).length === 20000, 'cut at 20,000');

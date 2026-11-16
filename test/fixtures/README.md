@@ -25,7 +25,7 @@ The test also checks, apart from the fixtures, that a warm chat worker builds th
 
 ### Names left out of the whole-environment comparison
 
-`PATH`, `HOME`, `TMPDIR`, `TEMP`, `TMP`, `PWD`, `OLDPWD`, `_`, `JADE_CLAUDE_HOME`: they hold the temp folders of this run, so they differ every time. The list is `MACHINE_SPECIFIC` in `scripts/parity-harness.mjs`; keep it short. Everything else the child receives is compared. The harness builds its own parent environment (it does not inherit yours), so the record is the same on every machine. It includes `CLAUDE_EFFORT=medium` because the original record was made with it set.
+`PATH`, `HOME`, `TMPDIR`, `TEMP`, `TMP`, `PWD`, `OLDPWD`, `_`, `JADE_CLAUDE_HOME`: they hold the temp folders of this run, so they differ every time. `__CF_USER_TEXT_ENCODING` is added to every program macOS starts, so it is left out too. The list is `MACHINE_SPECIFIC` in `scripts/parity-harness.mjs`; keep it short. Everything else the child receives is compared. The harness builds its own parent environment (it does not inherit yours), so the record is the same on every machine. It includes `CLAUDE_EFFORT=medium` because the original record was made with it set.
 
 ## What is NOT pinned
 

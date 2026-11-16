@@ -195,7 +195,7 @@ export function watchTree(root, cb, { skip = /(^|[\\/])(\.git|node_modules|\.cac
     if (closed || watchers.has(dir) || (dir !== root && skip.test(rel(dir)))) return;
     if (watchers.size >= maxDirs) { doubt = true; return; }   // a folder that is not watched: the list cannot be believed for long
     let w;
-    try { w = fs.watch(dir, (ev, f) => onEvent(dir, f)); }
+    try { w = fs.watch(dir, (ev, f) => onEvent(dir, f, ev)); }
     catch (e) { if (e.code !== 'ENOENT') doubt = true; return; }   // a folder that vanished is not a failure; one that could not be watched is
     w.on('error', () => { try { w.close(); } catch {} if (watchers.get(dir) === w) { watchers.delete(dir); inodes.delete(dir); if (fs.existsSync(dir)) doubt = true; } });
     watchers.set(dir, w); inodes.set(dir, inodeOf(dir));
@@ -208,14 +208,17 @@ export function watchTree(root, cb, { skip = /(^|[\\/])(\.git|node_modules|\.cac
     } catch {}
     if (fresh && dir !== root) cb(path.join(rel(dir), '\0'));   // "something in this folder" (covers what the lines above did not name): it is read once
   };
-  const onEvent = (dir, f) => {
+  const onEvent = (dir, f, ev) => {
     if (!f || closed) return;
     const full = path.join(dir, String(f));
     const r = rel(full);
     if (skip.test(r)) return;
     let st = null; try { st = fs.statSync(full); } catch { drop(full); }   // deleted or moved away: its watches are dead
     if (st?.isDirectory()) {
-      if (watchers.has(full) && inodes.get(full) !== st.ino) drop(full);   // deleted and made again since it was watched
+      // Deleted and made again since it was watched. A different inode says so, but file systems (ext4 on a CI machine) hand the same
+      // inode number out again at once, so a 'rename' (something made or moved here) for a folder already watched is taken as that too:
+      // it is watched afresh. Doing it for nothing only costs one more look at the folder.
+      if (watchers.has(full) && (inodes.get(full) !== st.ino || ev === 'rename')) drop(full);
       add(full, undefined, true);
     }
     cb(r);
