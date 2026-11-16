@@ -47,6 +47,9 @@ A dashboard's id pair is joined with `~` in a few places in `server/core/dashboa
 **12a. The app window is a browser underneath.**
 Jade opens in a Chromium app window (`docs/adr/0019-app-window.md`), so the browser's right-click menu, refresh and shortcuts work, and the window is the browser's: if that browser is already running, Jade's window is part of it. Firefox and Safari have no app mode and get a tab. On some desktops (Linux under Wayland) the window is grouped by an address-derived name, not `--class=jade-base`. Not run by anyone on macOS or Windows (the tests check the command only). Owner: `server/core/browser.js`, `jade.js`. Worth fixing when: a macOS or Windows user reports the window not opening, or someone wants a real desktop app.
 
+**12b. A file held by another program for longer than about a second can make a save fail.**
+A save is retried for about a second, and the saves Jade makes in the background (recent runs, routine times) are tried again later. A save made by pressing a button (a note, an action, a chat message) is not retried beyond that second and shows its error. Affects: Windows computers with a scanner or sync client that locks files for long. Owner: `server/core/util.js`. Worth fixing when: someone reports it.
+
 **13. A run that is allowed to run commands can read the key file and the engine key from its environment.**
 Stated in `README.md` and `docs/SECURITY.md`. Affects: anyone who turns on "edits" for an agent they do not trust. Owner: `server/core/engines.js`, `server/mcp/approve.mjs`. Worth fixing when: Claude Code offers a way to give one tool a secret that a command cannot read.
 

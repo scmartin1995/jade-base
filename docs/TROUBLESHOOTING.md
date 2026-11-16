@@ -47,6 +47,13 @@ Find the sentence that sounds like your problem. Each entry says what it means, 
 **Fix.** Start with `npm start -- --tab`, or set `JADE_WINDOW=tab`, or choose "A tab in my browser" in Settings → Look → Window (`window` in `config.json`: `'app'` or `'tab'`). `--tab` beats `JADE_WINDOW`, which beats the setting. If a window is already open you can also just use any browser with the `Open Jade:` link.
 **Owner.** `server/core/browser.js` (`windowMode`), `server/core/config.js`.
 
+### A save could not be written because another program held the file
+
+**Means.** On Windows an antivirus scanner, a backup or sync program or the search indexer can hold one of Jade's files for a moment, so the new copy cannot be moved over it. Jade tries again for about a second. If the file is still held, the recent runs and the routines' last-run times are kept in memory and written again a few seconds later or at the next minute; the next successful save always holds the latest state.
+**Check.** The terminal shows `Jade could not save the recent runs (EPERM); trying again.` (or `... when the routines last ran ...`). `EPERM`, `EBUSY` or `EACCES` means another program held the file.
+**Fix.** Usually none. If it repeats, exclude the Jade data folder from that program's scan or sync.
+**Owner.** `writeText` in `server/core/util.js`, `server/core/jobs.js`, `server/core/scheduler.js`.
+
 ### I changed a file and Jade did not notice
 
 **Means.** Pages, agent files, skills, settings and `engine.env` are watched and apply at once. Core code files restart the server (after any running replies finish, up to 10 minutes). Module files are read at start.

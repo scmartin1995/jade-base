@@ -65,7 +65,10 @@ const runSig = j => [j.status, j.endedAt, (j.output || '').length, (j.tools || [
 // The text of one run as it is written to jobs.json: every key hidden first, then cut to the last 20,000 characters, so a key the cut
 // would have split is hidden whole and not half kept.
 export const savedText = j => { const h = hide(j); return JSON.stringify(h.output ? { ...h, output: h.output.slice(-20000) } : h); };
-const persist = debounce(() => {
+// A save that fails (another program holds the file) is not lost: one plain line is logged and it is tried again a little later, up to
+// 5 more times; each try writes the latest state, and a newer save in the meantime replaces the waiting one.
+let persistFails = 0;
+const persistNow = () => {
   const parts = jobs.slice(0, 150).map(j => {
     const done = FINAL.includes(j.status) && j.endedAt, sig = done ? runSig(j) : '';
     if (done && saved.get(j)?.sig === sig) return saved.get(j).text;
@@ -74,6 +77,14 @@ const persist = debounce(() => {
     return text;
   });
   writeText(FILE(), `[${parts.join(',')}]`);
+};
+const persist = debounce(() => {
+  try { persistNow(); persistFails = 0; }
+  catch (e) {
+    if (++persistFails > 5) { persistFails = 0; console.error(`Jade could not save the recent runs (${e.code || e.message}); the next change will try again.`); return; }
+    console.error(`Jade could not save the recent runs (${e.code || e.message}); trying again.`);
+    persist();
+  }
 }, 800);
 // What the page is told about a run. While it is going, the text so far is not repeated in every event (the page gets the new text as
 // it is written, in job:text events, and the length here tells it whether it missed some); the finished run carries all of it.

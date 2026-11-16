@@ -94,8 +94,9 @@ function fire(t) {
   }
 }
 
+let unsaved = null;   // the last-run times that could not be written yet, kept so a run is not started twice
 export function tick() {
-  const last = readJSON(FILE(), {});
+  const last = { ...readJSON(FILE(), {}), ...(unsaved || {}) };
   let changed = false;
   for (const t of tasks()) {
     const seen = !!last[t.key];
@@ -104,7 +105,9 @@ export function tick() {
     changed = true;
     try { fire(t); } catch (e) { emit('toast', { kind: 'error', text: `${t.name}: ${e.message}` }); }
   }
-  if (changed) { writeJSON(FILE(), last); emit('schedule', {}); }
+  if (!changed && !unsaved) return;
+  try { writeJSON(FILE(), last); unsaved = null; emit('schedule', {}); }
+  catch (e) { unsaved = last; console.error(`Jade could not save when the routines last ran (${e.code || e.message}); trying again in a minute.`); }
 }
 
 /** Start the schedule; returns a function that stops it. The timers never keep a process alive on their own. */

@@ -41,6 +41,18 @@ export function writeJSON(file, data) {
 // a crash or a second save a moment later leaves the old file or the new one, never half of one. The temporary name starts with a
 // dot and ends in .tmp (folder watchers ignore both) and is removed again if anything fails. Returns what the new file looks like
 // (size, modified time, file number), so a caller that remembers the content can tell later whether someone else changed it.
+// On Windows a rename over a file fails while any other program has it open (antivirus, backup, sync, search indexer): EPERM, EBUSY or
+// EACCES. Such a lock lasts a moment, so the rename is tried again up to 10 times over about 0.8 s before the save is given up.
+// `io.rename` is a seam for tests, which inject the failure instead of relying on a real lock.
+export const io = { rename: fs.renameSync };
+const LOCKED = new Set(['EPERM', 'EBUSY', 'EACCES']);
+const sleepMs = ms => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+function renameWithRetry(from, to) {
+  for (let n = 0; ; n++) {
+    try { return io.rename(from, to); }
+    catch (e) { if (!LOCKED.has(e?.code) || n >= 9) throw e; sleepMs(Math.min(150, 5 * 2 ** n)); }
+  }
+}
 let tmpSeq = 0;
 export function writeText(file, text, { mode } = {}) {
   const dir = ensureDir(path.dirname(file));
@@ -52,7 +64,7 @@ export function writeText(file, text, { mode } = {}) {
     fs.fsyncSync(fd);
     const st = fs.fstatSync(fd);   // a rename keeps the file number and modified time, so this is what the saved file will be
     fs.closeSync(fd); fd = undefined;
-    fs.renameSync(tmp, file);
+    renameWithRetry(tmp, file);
     return st;
   } catch (e) {
     if (fd !== undefined) try { fs.closeSync(fd); } catch {}
