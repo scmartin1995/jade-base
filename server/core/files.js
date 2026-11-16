@@ -28,7 +28,7 @@ const KIND_BY_EXT = {
  *  A long walk makes one of these and hands it to every isSecret call, so the secret side is read once instead of once per file. */
 export function secretContext() {
   const secrets = [path.join(config.JADE_HOME, '.state'), path.join(config.JADE_HOME, 'engine.env')];
-  const real = secrets.map(s => { try { return fs.realpathSync(s); } catch { return s; } });
+  const real = secrets.map(s => { try { return fs.realpathSync.native(s); } catch { return s; } });   // the same form as the .native used in isSecret (on Windows the plain one keeps a short 8.3 name)
   const keyFiles = [];
   for (const s of [path.join(secrets[0], 'token'), secrets[1]]) { try { const st = fs.statSync(s); if (st.ino) keyFiles.push(st); } catch { /* missing or not readable: the check by name below still holds */ } }
   return { secrets, real, keyFiles };
