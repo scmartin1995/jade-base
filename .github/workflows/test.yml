@@ -21,10 +21,5 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: Tests
         run: npm test
-        env:
-          JADE_TEST_HANDLES: 1
-          JADE_TEST_STALL_MIN: 3
-          # Windows with Node 24 only: end each file's process when its tests are done, to see what else fails once a hang is out of the way
-          JADE_TEST_FORCE_EXIT: ${{ matrix.os == 'windows-latest' && matrix.node == 24 && '1' || '' }}
       - name: Gates
         run: npm run gates

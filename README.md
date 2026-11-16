@@ -1,5 +1,7 @@
 # Jade Base
 
+[![test](https://github.com/scmartin1995/jade-base/actions/workflows/test.yml/badge.svg)](https://github.com/scmartin1995/jade-base/actions/workflows/test.yml)
+
 Jade Base is a local web app for project managers. It keeps projects, notes and action items, searches your own files, and has a chat with Jade that runs on **Claude Code**, using the Claude plan you already have, or Amazon Bedrock or a company gateway. Drop in a meeting transcript and it gives you a checked record and action items; ask for a dashboard and it builds a page for a project. There are no other API keys and no npm dependencies: it needs Node 20+.
 
 ## Requirements

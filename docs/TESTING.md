@@ -66,6 +66,8 @@ Honest limits:
 
 ## How to add a test
 
+A test that checks elapsed time or speed goes through `test/helpers/timing.js`: `attempts(5, ...)` passes when any attempt meets the bound, `idleLag()` measures how slow this machine is right now (bounds are written relative to it), and `best(n, fn)` takes the quickest of several runs; compare against a baseline measured in the same process, not a fixed number of milliseconds. Troubleshooting aids, not part of the normal run: `JADE_TEST_HANDLES=1` (what keeps a test process alive after its tests) and `JADE_TEST_FORCE_EXIT=1` (end each file's process when its tests are done).
+
 Work red, then green: write the test first, through a public function or an HTTP route, watch it fail for the right reason, then change the code. The method is the one in `AGENTS.md`.
 
 1. **Choose the seam.** Prefer a route on the real server (HTTP) or an exported function over reading source text. Do not mock your own modules; use a stand-in only for the Claude process and the network.
