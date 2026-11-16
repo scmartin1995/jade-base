@@ -1,6 +1,8 @@
 // Shared by the gates and by the test helpers: a free port, waiting for a condition, a stand-in `claude`, a PATH that
 // cannot reach a real one, starting and stopping the server, and finding a browser on Linux, macOS and Windows.
 import fs from 'node:fs';
+import http from 'node:http';
+import crypto from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
 import net from 'node:net';
@@ -135,3 +137,64 @@ export function findBrowser(env = process.env, exists = fs.existsSync) {
   }
   return '';
 }
+
+// A WebSocket for the DevTools connection. Node 22+ has one built in; Node 20 does not, so this is a small
+// client (RFC 6455: text frames, masking, fragmented and large frames, ping/pong, close) over an http upgrade.
+// It has the parts of the browser interface the gates use: onopen, onmessage({data}), onerror, onclose, send, close.
+export class MiniWebSocket {
+  constructor(url) {
+    this.onopen = this.onmessage = this.onerror = this.onclose = null;
+    this.readyState = 0;
+    this._buf = Buffer.alloc(0); this._frag = null;
+    const u = new URL(url);
+    const key = crypto.randomBytes(16).toString('base64');
+    const req = http.request({ host: u.hostname, port: u.port || 80, path: u.pathname + u.search, headers: { Connection: 'Upgrade', Upgrade: 'websocket', 'Sec-WebSocket-Version': '13', 'Sec-WebSocket-Key': key } });
+    req.on('upgrade', (res, socket, head) => {
+      const want = crypto.createHash('sha1').update(key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').digest('base64');
+      if (res.headers['sec-websocket-accept'] !== want) { socket.destroy(); this._fail(new Error('bad websocket handshake')); return; }
+      this._socket = socket; this.readyState = 1;
+      socket.on('data', d => this._data(d));
+      socket.on('error', e => this._fail(e));
+      socket.on('close', () => this._closed());
+      this.onopen?.({});
+      if (head?.length) this._data(head);
+    });
+    req.on('response', res => { res.resume(); this._fail(new Error('websocket upgrade refused: ' + res.statusCode)); });
+    req.on('error', e => this._fail(e));
+    req.end();
+  }
+  _fail(e) { if (this.readyState === 3) return; this.onerror?.(e); this._closed(); }
+  _closed() { if (this.readyState === 3) return; this.readyState = 3; this.onclose?.({}); }
+  _frame(op, payload) {
+    const len = payload.length; let head;
+    if (len < 126) head = Buffer.from([0x80 | op, 0x80 | len]);
+    else if (len < 65536) { head = Buffer.alloc(4); head[0] = 0x80 | op; head[1] = 0x80 | 126; head.writeUInt16BE(len, 2); }
+    else { head = Buffer.alloc(10); head[0] = 0x80 | op; head[1] = 0x80 | 127; head.writeBigUInt64BE(BigInt(len), 2); }
+    const mask = crypto.randomBytes(4); const body = Buffer.from(payload);
+    for (let i = 0; i < body.length; i++) body[i] ^= mask[i & 3];
+    return Buffer.concat([head, mask, body]);
+  }
+  send(data) { if (this.readyState !== 1) throw new Error('websocket is not open'); this._socket.write(this._frame(1, Buffer.from(String(data), 'utf8'))); }
+  close() { if (this.readyState === 1) { this.readyState = 2; try { this._socket.write(this._frame(8, Buffer.alloc(0))); this._socket.end(); } catch {} } }
+  _data(d) {
+    this._buf = Buffer.concat([this._buf, d]);
+    for (;;) {
+      const b = this._buf; if (b.length < 2) return;
+      const fin = !!(b[0] & 0x80), op = b[0] & 15, masked = !!(b[1] & 0x80); let len = b[1] & 0x7f, off = 2;
+      if (len === 126) { if (b.length < 4) return; len = b.readUInt16BE(2); off = 4; }
+      else if (len === 127) { if (b.length < 10) return; len = Number(b.readBigUInt64BE(2)); off = 10; }
+      let mask = null; if (masked) { if (b.length < off + 4) return; mask = b.subarray(off, off + 4); off += 4; }
+      if (b.length < off + len) return;
+      const payload = Buffer.from(b.subarray(off, off + len)); this._buf = b.subarray(off + len);
+      if (mask) for (let i = 0; i < payload.length; i++) payload[i] ^= mask[i & 3];
+      if (op === 9) { this._socket.write(this._frame(10, payload)); }
+      else if (op === 8) { this.close(); this._socket.destroy(); }
+      else if (op === 1 || op === 2 || op === 0) {
+        if (op !== 0) this._frag = { binary: op === 2, parts: [] };
+        if (this._frag) this._frag.parts.push(payload);
+        if (fin && this._frag) { const all = Buffer.concat(this._frag.parts); const f = this._frag; this._frag = null; this.onmessage?.({ data: f.binary ? all : all.toString('utf8') }); }
+      }
+    }
+  }
+}
+export const WebSocketClient = globalThis.WebSocket || MiniWebSocket;

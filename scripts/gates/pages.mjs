@@ -1,11 +1,11 @@
 // Gate: open every route the nav offers (plus #/settings) in headless Chromium over the DevTools protocol and fail on
-// console errors, uncaught exceptions, or the app's error states. No packages: Node's global WebSocket and fetch.
+// console errors, uncaught exceptions, or the app's error states. No packages: Node's fetch and a small WebSocket client (lib.mjs) when Node has none.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { spawn, execFileSync } from 'node:child_process';
-import { ROOT, GATE_TOKEN, sleep, freePort, waitFor, gateSandbox, startServer, stopTree, findBrowser } from './lib.mjs';
+import { ROOT, GATE_TOKEN, sleep, freePort, waitFor, gateSandbox, startServer, stopTree, findBrowser, WebSocketClient } from './lib.mjs';
 
 // Known console messages the existing app produces and that are tolerated (exact text). Keep this list short.
 // Wake word: with voice.wake on (the default) the page fetches an offline speech model into a Web Worker, which fails
@@ -96,7 +96,7 @@ try {
     return list.find(t => t.type === 'page')?.webSocketDebuggerUrl || null;
   }, { timeout: 20000, interval: 250, message: 'the browser DevTools endpoint to come up' });
 
-  const ws = new WebSocket(wsUrl);
+  const ws = new WebSocketClient(wsUrl);
   await new Promise((res, rej) => { ws.onopen = res; ws.onerror = () => rej(new Error('DevTools websocket failed')); });
   let id = 0; const pending = new Map(); let current = '';
   const events = [];
