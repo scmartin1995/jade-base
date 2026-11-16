@@ -7,6 +7,7 @@ import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
 import { idleLag } from './helpers/timing.js';
+import { removeDir } from './helpers/rm.js';
 
 process.env.JADE_HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-filemap-'));
 process.env.JADE_CLAUDE_HOME = process.env.JADE_HOME + '/claude-home';   // never read the real ~/.claude
@@ -137,7 +138,7 @@ test('a folder cut off at the limit: adding and changing stay incremental and ex
     } finally { fs.readdirSync = real; }
     const got = normal(await files.list());
     assert.equal(got, fresh());
-  } finally { store.deleteProject?.(store.listProjects().find(p => p.name === 'Big')?.id); fs.rmSync(big, { recursive: true, force: true }); }
+  } finally { store.deleteProject?.(store.listProjects().find(p => p.name === 'Big')?.id); removeDir(big); }
 });
 
 test('a caller that cannot wait (scan) during a walk gets the full right answer', async () => {

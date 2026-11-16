@@ -10,6 +10,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { removeDir } from './helpers/rm.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-srvrev-'));
@@ -21,7 +22,7 @@ const files = await import('../server/core/files.js');
 const util = await import('../server/core/util.js');
 const { readBody } = await import('../server/core/body.js');
 config.load(); store.init();
-after(() => { files.stopWatching(); fs.rmSync(tmp, { recursive: true, force: true }); });
+after(() => { files.stopWatching(); removeDir(tmp); });
 
 test('isSecret and the file list keep working, and stay strict, when .state cannot be read', async () => {
   const state = path.join(config.JADE_HOME, '.state');

@@ -6,6 +6,7 @@ import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
 import { idleLag } from './helpers/timing.js';
+import { removeDir } from './helpers/rm.js';
 
 process.env.JADE_HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-closing-'));
 process.env.JADE_CLAUDE_HOME = process.env.JADE_HOME + '/claude-home';   // never read the real ~/.claude
@@ -48,7 +49,7 @@ test('two parts watching one folder share one set of watches, each hears only wh
   assert.ok(!b.some(f => f.startsWith('skipB')) && b.some(f => f.startsWith('skipA')), 'B is not told about its skipped folder');
   stopA(); stopB();
   assert.ok(await waitFor(() => watches() === before), 'all watches are closed when the last part leaves');
-  fs.rmSync(d, { recursive: true, force: true });
+  removeDir(d);
 });
 
 test('putting watches on a big tree in place does not hold the server up, and says when it is done', { skip: !linux }, async () => {
@@ -68,7 +69,7 @@ test('putting watches on a big tree in place does not hold the server up, and sa
   const stop2 = util.watchTree(d, f => seen.push(f), { maxDirs: 2000, onReady: () => {} });
   await waitFor(() => watches() > 1000);
   stop2();
-  fs.rmSync(d, { recursive: true, force: true });
+  removeDir(d);
 });
 
 test('a file added before the watch was ready is still found (the map looks again when it is told)', { skip: !linux }, async () => {
@@ -80,7 +81,7 @@ test('a file added before the watch was ready is still found (the map looks agai
   assert.ok(await waitFor(async () => (await files.list()).some(f => f.name === 'late.md')), 'the file is listed');
   assert.equal(JSON.stringify((await files.list()).map(f => [f.path, f.size, f.mtime])), fresh());
   files.stopWatching();
-  fs.rmSync(proj, { recursive: true, force: true });
+  removeDir(proj);
 });
 
 test('invalidate(path) marks only the folder the path is in; a new folder marks the nearest known one above it', async () => {

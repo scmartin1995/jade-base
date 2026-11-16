@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
+import { removeDir } from './helpers/rm.js';
 
 process.env.JADE_HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-fmrand-'));
 process.env.JADE_CLAUDE_HOME = process.env.JADE_HOME + '/claude-home';
@@ -86,8 +87,8 @@ test('a few hundred random changes leave the remembered list equal to the disk',
       else if (kind === 2 && live.length) { const p = live[rnd(live.length)]; fs.writeFileSync(p, 'more text ' + step); what = 'edit ' + p; }
       else if (kind === 3 && live.length) { const p = live[rnd(live.length)], q = path.join(dir, `r${step}.md`); fs.mkdirSync(dir, { recursive: true }); fs.renameSync(p, q); what = `rename ${p} -> ${q}`; }
       else if (kind === 4 && live.length) { const p = live[rnd(live.length)]; fs.rmSync(p); what = 'delete ' + p; }
-      else if (kind === 5 && dir !== proj) { fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true }); put(path.join(dir, `again${step}.txt`)); what = 'recreate ' + dir; }
-      else if (kind === 6 && dir !== proj) { fs.rmSync(dir, { recursive: true, force: true }); what = 'remove folder ' + dir; }
+      else if (kind === 5 && dir !== proj) { removeDir(dir); fs.mkdirSync(dir, { recursive: true }); put(path.join(dir, `again${step}.txt`)); what = 'recreate ' + dir; }
+      else if (kind === 6 && dir !== proj) { removeDir(dir); what = 'remove folder ' + dir; }
     } catch (e) { what += ' (failed: ' + e.code + ')'; }
     log.push(what);
     if (rnd(4) === 0) await new Promise(r => setTimeout(r, rnd(20)));

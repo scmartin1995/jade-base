@@ -7,6 +7,7 @@ import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
 import { writeStub } from './helpers/stub.js';
+import { removeDir } from './helpers/rm.js';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-hard-'));
 const bin = path.join(tmp, 'bin');
@@ -34,7 +35,7 @@ config.load(); store.init();
 after(() => {
   for (const p of store.listProjects()) store.patchProject(p.id, { folders: [] });   // so the folder watchers close before the folders go
   store.syncWatches();
-  fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });   // retries cover a watcher still closing (Windows holds the folder)
+  removeDir(tmp);   // retries cover a watcher still closing (Windows holds the folder)
 });
 const HOME = config.JADE_HOME;
 const put = (f, t) => { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, t); return f; };

@@ -7,6 +7,7 @@ import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
 import { writeStub } from './helpers/stub.js';
+import { removeDir } from './helpers/rm.js';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-allow-'));
 const bin = path.join(tmp, 'bin');
@@ -30,7 +31,7 @@ const jobs = await import('../server/core/jobs.js');
 const bridge = await import('../server/core/bridge.js');
 const engines = await import('../server/core/engines.js');
 config.load(); store.init();
-after(() => fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }));
+after(() => removeDir(tmp));
 
 const put = (f, t) => { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, t); return f; };
 const proj = path.join(tmp, 'site');

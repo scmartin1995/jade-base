@@ -6,6 +6,7 @@ import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
 import { NO_READ_ONLY } from './helpers/env.js';
+import { removeDir } from './helpers/rm.js';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-chats-'));
 process.env.JADE_HOME = path.join(tmp, 'home');
@@ -161,4 +162,4 @@ test('if the move cannot be done, the old file is kept as it was and nothing is 
   } finally { fs.chmodSync(path.join(st, 'chats'), 0o700); }
 });
 
-process.on('exit', () => { try { fs.rmSync(tmp, { recursive: true, force: true }); } catch {} });
+process.on('exit', () => { try { removeDir(tmp); } catch {} });

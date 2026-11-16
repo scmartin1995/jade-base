@@ -10,6 +10,7 @@ import net from 'node:net';
 import { spawn, spawnSync } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
+import { removeDir } from './helpers/rm.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const posix = process.platform !== 'win32';
@@ -30,7 +31,7 @@ before(async () => {
 });
 // Stop the server first, then remove its folder: removing it while the server still writes there now and then failed (the folder was not
 // empty), the hook ended before the server was stopped, and the test run never finished.
-after(() => new Promise(r => { const done = () => { fs.rmSync(tmp, { recursive: true, force: true }); r(); }; if (server.exitCode !== null) return done(); server.once('exit', done); server.kill(); }));
+after(() => new Promise(r => { const done = () => { removeDir(tmp); r(); }; if (server.exitCode !== null) return done(); server.once('exit', done); server.kill(); }));
 
 const ask = (headers, tool, input) => fetch(base() + '/api/permissions/ask', { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify({ job: 'j', tool, input }) });
 const workFile = () => path.join(HOME, 'work', 'scratch.txt');

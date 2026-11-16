@@ -9,6 +9,7 @@ import path from 'node:path';
 import { freePort, waitFor } from './helpers/server.js';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { removeDir } from './helpers/rm.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-keygate-'));
@@ -34,7 +35,7 @@ before(async () => {
   await start();
   KEY = fs.readFileSync(path.join(HOME, '.state', 'token'), 'utf8').trim();
 });
-after(async () => { await stop(); fs.rmSync(tmp, { recursive: true, force: true }); });
+after(async () => { await stop(); removeDir(tmp); });
 
 test('the page without the cookie, or with a wrong key, carries no key and sets no cookie', async () => {
   for (const u of ['/', '/?key=nope', '/?key=' + KEY.slice(0, -1) + 'x', '/?key=', '/index.html', '/projects']) {

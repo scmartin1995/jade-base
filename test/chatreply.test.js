@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
+import { removeDir } from './helpers/rm.js';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-chatreply-'));
 process.env.JADE_HOME = path.join(tmp, 'home');
@@ -13,7 +14,7 @@ const config = await import('../server/core/config.js');
 const store = await import('../server/core/store.js');
 const chat = await import('../server/core/chatreply.js');
 config.load(); store.init();
-test.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
+test.after(() => removeDir(tmp));
 
 const thread = () => store.newThread('t').id;
 const last = id => store.getThread(id).turns.at(-1);

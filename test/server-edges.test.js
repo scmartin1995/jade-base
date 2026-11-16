@@ -10,6 +10,7 @@ import net from 'node:net';
 import http from 'node:http';
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { removeDir } from './helpers/rm.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-edges-'));
@@ -48,7 +49,7 @@ before(async () => {
 });
 after(async () => {
   if (child && child.exitCode === null) { child.kill(); await new Promise(r => child.once('exit', r)); }
-  fs.rmSync(tmp, { recursive: true, force: true });
+  removeDir(tmp);
 });
 
 test('every route of a switched-off module answers the same way, whichever module it is', async () => {

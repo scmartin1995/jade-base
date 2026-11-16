@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { removeDir } from './helpers/rm.js';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-e2e-skills-'));
 process.env.JADE_HOME = path.join(tmp, 'home');
@@ -28,5 +29,5 @@ test('forAgent: installed copy, then repo copy, then any skill; unknown names dr
     const got = skills.forAgent(['inst', 'shipped', 'plain', 'nope'], 'e2eagent');
     assert.deepEqual(got.map(s => s.name), ['jade-e2eagent-inst', 'shipped', 'plain']);
     assert.equal(skills.forAgent(['plain']).length, 1);
-  } finally { fs.rmSync(path.join(config.APP_ROOT, 'agents', 'e2eagent'), { recursive: true, force: true }); }
+  } finally { removeDir(path.join(config.APP_ROOT, 'agents', 'e2eagent')); }
 });

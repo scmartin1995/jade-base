@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { removeDir } from './helpers/rm.js';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-redstream-'));
 process.env.JADE_HOME = path.join(tmp, 'home');
@@ -12,7 +13,7 @@ const config = await import('../server/core/config.js');
 const provider = await import('../server/core/provider.js');
 const { redact, redactor } = await import('../server/core/redact.js');
 config.load();
-after(() => fs.rmSync(tmp, { recursive: true, force: true }));
+after(() => removeDir(tmp));
 
 const KEY = 'gw-secret-value-1234567890';
 fs.mkdirSync(path.dirname(provider.FILE), { recursive: true });

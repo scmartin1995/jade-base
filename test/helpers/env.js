@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { removeDir } from './rm.js';
 
 /**
  * tmpHome('jade-foo-') makes <tmp>/home (JADE_HOME), <tmp>/claude (JADE_CLAUDE_HOME) and <tmp>/bin, and returns
@@ -13,7 +14,7 @@ export function tmpHome(prefix = 'jade-test-', { apply = false } = {}) {
   const home = path.join(root, 'home'), claudeHome = path.join(root, 'claude'), bin = path.join(root, 'bin');
   for (const d of [home, claudeHome, bin]) fs.mkdirSync(d, { recursive: true });
   if (apply) { process.env.JADE_HOME = home; process.env.JADE_CLAUDE_HOME = claudeHome; }
-  return { root, home, claudeHome, bin, env: { JADE_HOME: home, JADE_CLAUDE_HOME: claudeHome }, cleanup: () => fs.rmSync(root, { recursive: true, force: true }) };
+  return { root, home, claudeHome, bin, env: { JADE_HOME: home, JADE_CLAUDE_HOME: claudeHome }, cleanup: () => removeDir(root) };
 }
 
 /** Write a file, making its folders first. Returns the path. */

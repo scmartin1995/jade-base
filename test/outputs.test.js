@@ -8,6 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startServer } from './helpers/server.js';
+import { removeDir } from './helpers/rm.js';
 
 process.env.JADE_HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-outputs-'));
 process.env.JADE_CLAUDE_HOME = process.env.JADE_HOME + '/claude-home';   // never read the real ~/.claude
@@ -186,7 +187,7 @@ test('routes: shape, the X-Jade header on writes, and bad input', async () => {
     try {
       assert.equal((await (await fetch(again.base + '/api/outputs', { headers: AUTH })).json()).outputs.length, 5, 'correction survived the restart');
     } finally { await again.stop(); }
-  } finally { await child.stop(); fs.rmSync(home, { recursive: true, force: true }); }
+  } finally { await child.stop(); removeDir(home); }
 });
 
 test('loose needs at most two path segments; three is working', () => {

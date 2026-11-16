@@ -9,6 +9,7 @@ import http from 'node:http';
 import net from 'node:net';
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { removeDir } from './helpers/rm.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CLIENT = path.join(ROOT, 'bridge', 'jade-bridge.mjs');
@@ -73,7 +74,7 @@ before(async () => {
   }
   throw new Error('test Jade did not start');
 });
-after(() => { server?.kill(); fs.rmSync(tmp, { recursive: true, force: true }); });
+after(() => { server?.kill(); removeDir(tmp); });
 
 test('--help lists every command, and no arguments or a bad command is exit 2 with one JSON line', () => {
   const h = spawnSync(process.execPath, [CLIENT, '--help'], { encoding: 'utf8' });

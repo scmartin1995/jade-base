@@ -8,6 +8,7 @@ import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
 import { writeStub } from './helpers/stub.js';
+import { removeDir } from './helpers/rm.js';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-dreams-'));
 const bin = path.join(tmp, 'bin'), dump = path.join(tmp, 'runs.jsonl'), replyFile = path.join(tmp, 'reply.json');
@@ -42,7 +43,7 @@ after(async () => {
   warm.shutdown();
   for (const p of store.listProjects()) store.patchProject(p.id, { folders: [] });   // so the folder watchers close before the folders go
   store.syncWatches();
-  fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });   // retries cover a watcher still closing
+  removeDir(tmp);   // retries cover a watcher still closing
 });
 
 const CH = process.env.JADE_CLAUDE_HOME;

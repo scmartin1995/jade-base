@@ -7,6 +7,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { ROOT } from '../scripts/gates/lib.mjs';
+import { removeDir } from './helpers/rm.js';
 
 const copyTree = () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-docs-copy-'));
@@ -59,7 +60,7 @@ test('docs gate: fails on a planted bad path, npm script, route and setting, nam
     // taking the planted file away puts the gate back where it was
     fs.rmSync(doc);
     assert.deepEqual(gate(dir).problems, before.problems);
-  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  } finally { removeDir(dir); }
 });
 
 test('docs gate: a route is checked against the routes the server registers, and a new route is known the moment it is registered', () => {
@@ -69,7 +70,7 @@ test('docs gate: a route is checked against the routes the server registers, and
     assert.ok(gate(dir).problems.some(p => p.includes('/api/brand-new-thing')));
     fs.appendFileSync(path.join(dir, 'server', 'modules', 'home.js'), "\nexport const later = on => on('GET', '/api/brand-new-thing', () => 1);\n");
     assert.ok(!gate(dir).problems.some(p => p.includes('/api/brand-new-thing')));
-  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  } finally { removeDir(dir); }
 });
 
 test('docs gate: a node --test command without the set-up import is refused, with it (or as npm run test:one) it passes', () => {
@@ -88,7 +89,7 @@ test('docs gate: a node --test command without the set-up import is refused, wit
     assert.equal(mine.length, 2, mine.join('\n'));
     assert.ok(mine.every(p => /set-up import/.test(p)));
     assert.ok(mine.some(p => p.startsWith('docs/cmd.md:3:')) && mine.some(p => p.startsWith('docs/cmd.md:5:')), 'both the inline and the fenced one');
-  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  } finally { removeDir(dir); }
 });
 
 test('docs gate: the real documents contain no test command without the set-up, and test:one is a real script that carries it', () => {
@@ -111,5 +112,5 @@ test('hygiene gate: a real-looking home path in a document or data file is refus
     assert.ok(found.some(f => f.startsWith('docs/planted-a.md:')), found.join('\n'));
     assert.ok(found.some(f => f.startsWith('docs/data/planted-b.json:')), found.join('\n'));
     assert.equal(found.filter(f => !f.includes('planted-')).length, 0, 'the real tree is clean:\n' + found.join('\n'));
-  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  } finally { removeDir(dir); }
 });

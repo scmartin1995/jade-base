@@ -8,6 +8,7 @@ import path from 'node:path';
 import { freePort, waitFor } from './helpers/server.js';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { removeDir } from './helpers/rm.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-security-'));
@@ -36,7 +37,10 @@ before(async () => {
   child = spawn(process.execPath, [path.join(ROOT, 'server', 'index.js')], { env: { ...process.env, JADE_TOKEN: SECRET, JADE_HOME: HOME2, JADE_CLAUDE_HOME: path.join(tmp, 'srv-claude'), JADE_PORT: String(PORT) }, stdio: 'ignore' });
   await waitFor(async () => (await fetch(`http://127.0.0.1:${PORT}/api/engines`)).ok, { timeout: 12000, interval: 100, message: 'the server to start' });
 });
-after(() => { child?.kill(); fs.rmSync(tmp, { recursive: true, force: true }); });
+after(async () => {   // the server must be gone before its folder is removed: it may still be writing into it
+  if (child && child.exitCode === null && !child.signalCode) { const gone = new Promise(r => child.once('exit', r)); child.kill(); await Promise.race([gone, new Promise(r => setTimeout(r, 10000))]); }
+  removeDir(tmp);
+});
 const base = () => `http://127.0.0.1:${PORT}`;
 
 test('a request without the secret cannot read data or change anything', async () => {

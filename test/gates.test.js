@@ -8,6 +8,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { ROOT, findBrowser, safePath, gateSandbox, startServer, waitFor } from '../scripts/gates/lib.mjs';
 import { put } from './helpers/env.js';
+import { removeDir } from './helpers/rm.js';
 
 const gate = (name, env = {}) => spawnSync(process.execPath, [path.join(ROOT, 'scripts/gates', name)], { env: { ...process.env, ...env }, encoding: 'utf8', timeout: 60000 });
 
@@ -37,7 +38,7 @@ test('imports gate: fails when a view a route needs is missing, and names it', (
     const d = JSON.parse(r.stdout).details;
     assert.ok(d.missingViews.some(v => /^meeting\.js \(meetings/.test(v)), JSON.stringify(d.missingViews));
     assert.ok(d.missingViews.some(v => /^home\.js \(home/.test(v)), JSON.stringify(d.missingViews));
-  } finally { fs.rmSync(tree, { recursive: true, force: true }); }
+  } finally { removeDir(tree); }
 });
 
 test('imports gate: fails when a project panel names a file that is not there, and when an import is broken', () => {
@@ -50,7 +51,7 @@ test('imports gate: fails when a project panel names a file that is not there, a
     const d = JSON.parse(r.stdout).details;
     assert.ok(d.missingViews.some(v => /meetings-panel\.js \(meetings: project panel/.test(v)), JSON.stringify(d.missingViews));
     assert.ok(d.missingImports.some(v => /home\.js -> \.\/not-here\.js/.test(v)), JSON.stringify(d.missingImports));
-  } finally { fs.rmSync(tree, { recursive: true, force: true }); }
+  } finally { removeDir(tree); }
 });
 
 test('browser finder: $CHROMIUM wins, then the usual places for each system, and nothing found gives an empty answer', () => {
@@ -95,5 +96,5 @@ test('no gate can start a real `claude`: PATH loses every folder that holds one,
       const j = await waitFor(async () => { const x = await (await fetch(srv.base + '/api/jobs/' + sent.id, { headers: { 'x-jade': srv.token } })).json(); return x.status === 'done' ? x : null; }, { timeout: 15000, message: 'the reply' });
       assert.match(JSON.stringify(j), /echo: ping/);
     } finally { await srv.stop(); }
-  } finally { fs.rmSync(realDir, { recursive: true, force: true }); sb.cleanup(); }
+  } finally { removeDir(realDir); sb.cleanup(); }
 });

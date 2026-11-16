@@ -10,6 +10,7 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { writeStub } from './helpers/stub.js';
+import { removeDir } from './helpers/rm.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FIX = path.join(ROOT, 'test/fixtures/meetings');
@@ -62,7 +63,7 @@ const env = { ...process.env, PATH: bin + path.delimiter + process.env.PATH, JAD
 for (const k of Object.keys(env)) if (/^(ANTHROPIC_|AWS_|CLAUDE_CODE_|CLAUDECODE)/.test(k)) delete env[k];
 const server = spawn(process.execPath, [path.join(ROOT, 'server/index.js')], { env, stdio: ['ignore', 'ignore', 'pipe'] });
 let serverErr = ''; server.stderr.on('data', d => { serverErr += d; });
-after(() => { server.kill('SIGTERM'); fs.rmSync(tmp, { recursive: true, force: true }); });
+after(() => { server.kill('SIGTERM'); removeDir(tmp); });
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 for (let t0 = Date.now(), up = false; !up; await sleep(200)) {

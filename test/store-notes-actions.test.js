@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parseFrontmatter } from '../server/core/util.js';
 import { NO_READ_ONLY } from './helpers/env.js';
+import { removeDir } from './helpers/rm.js';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-notes-'));
 process.env.JADE_HOME = path.join(tmp, 'home');
@@ -180,4 +181,4 @@ test('the actions of a project that is deleted drop out of what is remembered', 
   same('after project delete');
 });
 
-process.on('exit', () => { try { fs.rmSync(tmp, { recursive: true, force: true }); } catch {} });
+process.on('exit', () => { try { removeDir(tmp); } catch {} });

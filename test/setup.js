@@ -3,13 +3,14 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { removeDir } from './helpers/rm.js';
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-test-'));
 if (!process.env.JADE_HOME) process.env.JADE_HOME = path.join(root, 'home');
 if (!process.env.JADE_CLAUDE_HOME) process.env.JADE_CLAUDE_HOME = path.join(root, 'claude');
 // A server a test starts (and the bridge it drives) shares this secret; a test of the secret itself starts its own server with another.
 if (!process.env.JADE_TOKEN) process.env.JADE_TOKEN = '1';
-process.on('exit', () => { try { fs.rmSync(root, { recursive: true, force: true }); } catch {} });
+process.on('exit', () => { try { removeDir(root); } catch {} });
 
 // A real `claude` must never run from a test (it would read and write the real ~/.claude): take every folder that holds one out of PATH.
 // A test that needs a stand-in puts its own folder first on PATH, which is unaffected.

@@ -8,6 +8,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { waitFor } from './helpers/server.js';
 import { writeStub } from './helpers/stub.js';
+import { removeDir } from './helpers/rm.js';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-engpub-'));
 const bin = path.join(tmp, 'bin');
@@ -29,7 +30,7 @@ const engines = await import('../server/core/engines.js');
 const provider = await import('../server/core/provider.js');
 const opener = await import('../server/core/opener.js');
 config.load();
-after(() => fs.rmSync(tmp, { recursive: true, force: true }));
+after(() => removeDir(tmp));
 const val = (a, flag) => a[a.indexOf(flag) + 1];
 
 // ---------------------------------------------------------------- claudeArgs

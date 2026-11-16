@@ -7,6 +7,7 @@ import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
 import { writeStub } from './helpers/stub.js';
+import { removeDir } from './helpers/rm.js';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-effort-'));
 const bin = path.join(tmp, 'bin'), dump = path.join(tmp, 'runs.jsonl');
@@ -49,7 +50,7 @@ const judge = await import('../server/core/judge.js');
 const meetings = await import('../server/core/meetings.js');
 const effort = await import('../server/core/effort.js');
 config.load(); store.init();
-after(() => { warm.shutdown(); fs.rmSync(tmp, { recursive: true, force: true }); });
+after(() => { warm.shutdown(); removeDir(tmp); });
 
 const runs = () => (fs.existsSync(dump) ? fs.readFileSync(dump, 'utf8').trim().split('\n').map(l => JSON.parse(l)) : []);
 const last = kind => runs().filter(r => r.kind === kind).at(-1);

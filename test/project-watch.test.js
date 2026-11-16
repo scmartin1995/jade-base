@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { waitFor } from './helpers/server.js';
+import { removeDir } from './helpers/rm.js';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-pwatch-'));
 process.env.JADE_HOME = path.join(tmp, 'home');
@@ -15,7 +16,7 @@ const store = await import('../server/core/store.js');
 const agents = await import('../server/core/agents.js');
 const { bus } = await import('../server/core/bus.js');
 config.load(); store.init();
-after(() => fs.rmSync(tmp, { recursive: true, force: true }));
+after(() => removeDir(tmp));
 
 const heard = [];
 bus.on('event', e => heard.push(e.type));

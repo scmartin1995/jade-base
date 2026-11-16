@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
+import { removeDir } from './helpers/rm.js';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-mayrun-'));
 process.env.JADE_HOME = path.join(tmp, 'home');
@@ -19,7 +20,7 @@ const bridge = await import('../server/core/bridge.js');
 const scheduler = await import('../server/core/scheduler.js');
 const agentfiles = await import('../server/core/agentfiles.js');
 config.load();
-test.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
+test.after(() => removeDir(tmp));
 
 const MOD = modules.list().find(m => !m.core && !m.defaultOff)?.id;   // some switchable module, to turn on and off
 const setModule = on => config.save({ modules: { [MOD]: on, routines: true } });

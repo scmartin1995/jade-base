@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { waitFor } from './helpers/server.js';
 import crypto from 'node:crypto';
+import { removeDir } from './helpers/rm.js';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-agents-cc-'));
 process.env.JADE_HOME = path.join(tmp, 'home');
@@ -153,7 +154,7 @@ test('owned skills: installed with the built-in under jade-<id>-<skill>, attache
     assert.doesNotMatch(other.prompt, /jade-zz-owned/);
     const chat = await agents.prepare({ ...agents.get('jade'), context: [] }, { message: 'Pull out facts, please: list facts from this text.' });
     assert.doesNotMatch(chat.prompt, new RegExp(`jade-${id}-facts`), 'word overlap never reaches an owned skill');
-  } finally { fs.rmSync(agentFile, { force: true }); fs.rmSync(path.join(src, id), { recursive: true, force: true }); }
+  } finally { fs.rmSync(agentFile, { force: true }); removeDir(path.join(src, id)); }
 });
 
 test('editing: yours writes its own file keeping jade- keys; a built-in is installed first; a plugin agent is read-only', () => {
