@@ -14,6 +14,7 @@ import os from 'node:os';
 import path from 'node:path';
 import http from 'node:http';
 import crypto from 'node:crypto';
+import { pathToFileURL } from 'node:url';
 
 const [root, out] = process.argv.slice(2).filter(a => !a.startsWith('--')).map(p => path.resolve(p));
 const PLAN = process.argv.includes('--plan');
@@ -70,7 +71,7 @@ function standInFetch(answer) {
   return () => { globalThis.fetch = realFetch; };
 }
 
-const at = p => import(path.join(root, 'server/core', p));
+const at = p => import(pathToFileURL(path.join(root, 'server/core', p)).href);
 const config = await at('config.js'), engines = await at('engines.js'), warm = await at('warm.js'), judge = await at('judge.js');
 config.load();
 const ENV = path.join(config.JADE_HOME, 'engine.env'), MODELS = path.join(config.STATE, 'models.json');

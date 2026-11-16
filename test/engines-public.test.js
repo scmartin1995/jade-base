@@ -109,7 +109,7 @@ test('quoteCmdArg quotes what cmd.exe would misread and leaves plain words alone
 
 test('a started run never gets the server key; the routing comes from Jade\'s own settings, not from stray variables on this computer', async () => {
   process.env.ANTHROPIC_BASE_URL = 'https://stray.example.com'; process.env.CLAUDECODE = '1';
-  const p = engines.spawnCli(path.join(bin, 'claude'), ['-p', 'x'], { stdio: ['pipe', 'ignore', 'ignore'] });
+  const p = engines.spawnCli((await import('../server/core/util.js')).which('claude'), ['-p', 'x'], { stdio: ['pipe', 'ignore', 'ignore'] });
   p.stdin.end('hi');
   await new Promise(r => p.on('close', r));
   delete process.env.ANTHROPIC_BASE_URL; delete process.env.CLAUDECODE;

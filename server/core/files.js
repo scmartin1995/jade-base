@@ -136,11 +136,12 @@ function prune(rs) {
 }
 const markChanged = (s, rel) => { s.dirty.add(path.dirname(path.join(s.r.dir, rel))); if (s.dirty.size > MAX_DIRTY) s.full = true; };
 
+// On Windows a folder's own modified time has not been seen to follow a file being added to it (not verified there), so a folder that is not watched is read again whenever the list is due.
 function* sweep(s, due) {
   for (const [dir, node] of s.tree) {
     if (due()) yield;
     let m = -1; try { m = fs.statSync(dir).mtimeMs; } catch { /* gone: its parent changed */ }
-    if (m < 0) s.dirty.add(path.dirname(dir)); else if (m !== node.mtime || m >= node.readAt - 2000) s.dirty.add(dir);   // a change in the same clock tick as the read could look like none, so a folder changed just before it is read once more
+    if (m < 0) s.dirty.add(path.dirname(dir)); else if (process.platform === 'win32' || m !== node.mtime || m >= node.readAt - 2000) s.dirty.add(dir);   // a change in the same clock tick as the read could look like none, so a folder changed just before it is read once more
   }
 }
 

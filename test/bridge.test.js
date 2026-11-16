@@ -202,11 +202,12 @@ test('handoff writes a brief file with the task, folders, open actions and what 
 });
 
 test('huge text is refused, not sent', async () => {
-  const r = run(['note-add', 'x'.repeat(100001)]);
-  assert.equal(r.code, 2); assert.equal(r.json.ok, false); assert.match(r.json.error, /too long/);
+  // Windows refuses a command line over about 32,000 characters before the client starts, so the command-line half cannot be tried there
+  const cli = process.platform !== 'win32';
+  if (cli) { const r = run(['note-add', 'x'.repeat(100001)]); assert.equal(r.code, 2); assert.equal(r.json.ok, false); assert.match(r.json.error, /too long/); }
   const res = await post('/api/bridge/note', { text: 'x'.repeat(100001) });
   assert.equal(res.status, 413);
-  assert.equal(run(['note-add', 'y'.repeat(90000)]).json.ok, true);
+  if (cli) assert.equal(run(['note-add', 'y'.repeat(90000)]).json.ok, true);
 });
 
 test('the server refuses a bridge write without the X-Jade header', async () => {

@@ -31,7 +31,11 @@ const provider = await import('../server/core/provider.js');
 const { redact } = await import('../server/core/redact.js');
 const modules = await import('../server/core/modules.js');
 config.load(); store.init();
-after(() => fs.rmSync(tmp, { recursive: true, force: true }));
+after(() => {
+  for (const p of store.listProjects()) store.patchProject(p.id, { folders: [] });   // so the folder watchers close before the folders go
+  store.syncWatches();
+  fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });   // retries cover a watcher still closing (Windows holds the folder)
+});
 const HOME = config.JADE_HOME;
 const put = (f, t) => { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, t); return f; };
 const proj = path.join(tmp, 'site');
