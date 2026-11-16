@@ -102,6 +102,39 @@ export async function stopTree(p) {
 }
 
 /**
+ * Start a headless Chromium-family browser with its DevTools port open and wait for a page to be listed. A cold browser on a shared
+ * machine can take a long time, so the wait is up to 90 s; if the browser exits or the wait runs out it is started once more with a
+ * fresh profile folder. On failure the error carries the tail of the browser's own error output.
+ * Returns { chrome, wsUrl, port, profile } ; `track(child)` and `trackDir(dir)` let the caller clean up what was started.
+ */
+export async function launchBrowser(browserPath, { track = () => {}, trackDir = () => {}, timeout = 90000, attempts = 2 } = {}) {
+  let lastErr = '';
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-gate-chrome-')); trackDir(profile);
+    const port = await freePort();
+    const args = ['--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`];
+    if (process.env.CI || (process.getuid && process.getuid() === 0)) args.push('--no-sandbox');
+    args.push('--disable-gpu', '--no-first-run', '--no-default-browser-check', '--disable-dev-shm-usage', '--disable-extensions', '--disable-features=BackForwardCache', '--window-size=1280,900', 'about:blank');
+    const chrome = spawn(browserPath, args, { stdio: ['ignore', 'ignore', 'pipe'], detached: !WIN, windowsHide: true });
+    track(chrome);
+    let err = ''; chrome.stderr.on('data', d => { err = (err + d).slice(-4000); });
+    try {
+      const wsUrl = await waitFor(async () => {
+        if (chrome.exitCode !== null) throw new Error('the browser exited');
+        const list = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
+        return list.find(t => t.type === 'page')?.webSocketDebuggerUrl || null;
+      }, { timeout, interval: 250, message: 'the browser DevTools endpoint to come up' });
+      return { chrome, wsUrl, port, profile };
+    } catch (e) {
+      lastErr = `attempt ${attempt}: ${e.message}; browser exit code ${chrome.exitCode}; browser stderr tail: ${err.slice(-1500).trim() || '(none)'}`;
+      console.error(lastErr);
+      await stopTree(chrome);
+    }
+  }
+  throw new Error('the browser did not come up: ' + lastErr);
+}
+
+/**
  * Start the real server on a free port with the given folders and a PATH that holds only the stand-in `claude`.
  * Returns { base, port, token, child, stderr(), exited(), stop() }; waits until /api/boot answers.
  */

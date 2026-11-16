@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { spawn, execFileSync } from 'node:child_process';
-import { ROOT, GATE_TOKEN, sleep, freePort, waitFor, gateSandbox, startServer, stopTree, findBrowser, WebSocketClient } from './lib.mjs';
+import { ROOT, GATE_TOKEN, sleep, freePort, waitFor, launchBrowser, gateSandbox, startServer, stopTree, findBrowser, WebSocketClient } from './lib.mjs';
 
 // Known console messages the existing app produces and that are tolerated (exact text). Keep this list short.
 // Wake word: with voice.wake on (the default) the page fetches an offline speech model into a Web Worker, which fails
@@ -73,7 +73,6 @@ try {
   fs.writeFileSync(path.join(home, '.state', 'dreams.json'), JSON.stringify({ nights: [{ date: '2026-11-12', summary: 'A week of weekly summaries.', at: '2026-11-12T02:30:00.000Z', read: { claude: 'projects', web: false, days: 7 }, ideas: [
     { id: '2026-11-12-0', status: 'new', kind: 'agent', title: 'Weekly summary writer', detail: 'Writes the weekly summary.', suggestion: 'Try it on Friday', evidence: 'asked for the summary on the 10th and again on the 12th', project: '', draft: { name: 'weekly-summary-writer', description: 'Writes the weekly summary', prompt: 'Write the summary.' } },
     { id: '2026-11-12-1', status: 'dismissed', kind: 'doc', title: 'How the summary is made', detail: '', suggestion: '', evidence: 'done by hand on the 10th', project: '', draft: { title: 'Summary', body: 'x' } }] }] }));
-  const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-pages-chrome-')); tmpDirs.push(profile);
   const serverStart = Date.now();
   const server = await startServer({ ...sandbox, detached: true });   // waits until /api/boot answers; throws with the server's own words if it does not
   procs.push(server.child);
@@ -85,16 +84,7 @@ try {
   const routes = [...new Set((boot.modules || []).filter(m => m.enabled).flatMap(m => (m.nav || []).map(n => n.route)))].filter(id => id !== 'voice' && id !== 'dreams');   // dreams is added after the hooks, below
   if (!routes.includes('settings')) routes.push('settings');
 
-  const dport = await freePort();
-  const chrome = spawn(CHROMIUM, ['--headless=new', `--remote-debugging-port=${dport}`, `--user-data-dir=${profile}`, '--no-sandbox', '--disable-gpu',
-    '--no-first-run', '--no-default-browser-check', '--disable-extensions', '--disable-features=BackForwardCache', '--window-size=1280,900', 'about:blank'], { stdio: 'ignore', detached: process.platform !== 'win32', windowsHide: true });
-  procs.push(chrome);
-
-  const wsUrl = await waitFor(async () => {
-    if (chrome.exitCode !== null) throw new Error('the browser exited');
-    const list = await (await fetch(`http://127.0.0.1:${dport}/json/list`)).json();
-    return list.find(t => t.type === 'page')?.webSocketDebuggerUrl || null;
-  }, { timeout: 20000, interval: 250, message: 'the browser DevTools endpoint to come up' });
+  const { chrome, wsUrl } = await launchBrowser(CHROMIUM, { track: c => procs.push(c), trackDir: d => tmpDirs.push(d) });
 
   const ws = new WebSocketClient(wsUrl);
   await new Promise((res, rej) => { ws.onopen = res; ws.onerror = () => rej(new Error('DevTools websocket failed')); });
