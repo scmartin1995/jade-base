@@ -41,18 +41,7 @@ if ! running; then
   cd "$APP" && nohup node jade.js --no-open >> "$LOG/jade.log" 2>&1 &
   for _ in $(seq 1 40); do running && break; sleep 0.25; done
 fi
-# The start link carries the key (read from the owner-only key file Jade made). It goes into a small owner-only file that the window opens,
-# never onto a command line, where other users on this computer could read it, and never into a log.
-STATE="${JADE_HOME:-$HOME/JadeBase}/.state"
-KEY="${JADE_TOKEN:-}"
-[[ -z "$KEY" ]] && KEY="$(tr -d '[:space:]' < "$STATE/token" 2>/dev/null)"
-if [[ -z "$KEY" ]]; then echo "Jade is not running yet, or its key file ($STATE/token) cannot be read." >&2; exit 1; fi
-mkdir -p "$STATE"; OPEN="$STATE/open.html"
-( umask 077; printf '<!doctype html><meta charset="utf-8"><meta name="referrer" content="no-referrer"><title>Opening Jade</title><meta http-equiv="refresh" content="0;url=%s/?key=%s"><script>location.replace("%s/?key=%s")</script>' "$URL" "$KEY" "$URL" "$KEY" > "$OPEN" )
-chmod 600 "$OPEN" 2>/dev/null
-# a file address: a space, # or ? in the home folder's path must be written as %XX or the window opens the wrong place
-urlenc() { local LC_ALL=C s="$1" out="" c i; for ((i = 0; i < ${#s}; i++)); do c="${s:i:1}"; case "$c" in [a-zA-Z0-9/._~-]) out+="$c" ;; *) out+="$(printf '%%%02X' "'$c")" ;; esac; done; printf '%s' "$out"; }
-FILE_URL="file://$(urlenc "$OPEN")"
-if command -v chromium >/dev/null; then exec chromium --app="$FILE_URL" --class=Jade
-elif command -v google-chrome-stable >/dev/null; then exec google-chrome-stable --app="$FILE_URL" --class=Jade
-else exec xdg-open "$FILE_URL"; fi
+# Opening the window is done by Node (jade.js --open): it makes the small owner-only file that carries the start link, finds a browser and
+# opens it as an app window or a tab by the `window` setting, JADE_WINDOW, --tab and JADE_BROWSER. The key is never on a command line.
+if [[ ! -r "${JADE_HOME:-$HOME/JadeBase}/.state/token" && -z "${JADE_TOKEN:-}" ]]; then echo "Jade is not running yet, or its key file (${JADE_HOME:-$HOME/JadeBase}/.state/token) cannot be read." >&2; exit 1; fi
+cd "$APP" && exec node jade.js --open "$@"

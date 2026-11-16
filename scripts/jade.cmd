@@ -24,21 +24,9 @@ if errorlevel 1 (
 )
 :up
 if /i "%~1"=="--serve" ( echo Jade is running at %URL% & exit /b 0 )
-rem The start link carries the key (read from the owner-only key file). It goes into a small file in the data folder that the window opens,
-rem never onto a command line, where other users on this computer could read it, and never into a log.
-set "HOMEDIR=%JADE_HOME%"
-if "%HOMEDIR%"=="" set "HOMEDIR=%USERPROFILE%\JadeBase"
-set "KEY=%JADE_TOKEN%"
-if not defined KEY if exist "%HOMEDIR%\.state\token" set /p KEY=<"%HOMEDIR%\.state\token"
-if not defined KEY ( echo Jade's key file was not found in %HOMEDIR%\.state & exit /b 1 )
-set "OPEN=%HOMEDIR%\.state\open.html"
-> "%OPEN%" echo ^<!doctype html^>^<meta charset="utf-8"^>^<meta name="referrer" content="no-referrer"^>^<title^>Opening Jade^</title^>^<meta http-equiv="refresh" content="0;url=%URL%/?key=%KEY%"^>
-icacls "%OPEN%" /inheritance:r /grant:r "%USERNAME%:F" >nul 2>&1
-set "FILEURL=file:///%OPEN:\=/%"
-for %%b in ("%ProgramFiles%\Google\Chrome\Application\chrome.exe" "%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe" "%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe" "%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe" "%ProgramFiles%\Microsoft\Edge\Application\msedge.exe") do (
-  if exist %%b ( start "" %%b "--app=%FILEURL%" & exit /b 0 )
-)
-start "" "%FILEURL%"
+rem Opening the window is done by Node (jade.js --open): it writes the small file that carries the start link (the key is never on a command
+rem line), finds a browser and opens an app window or a tab by the window setting, JADE_WINDOW, --tab and JADE_BROWSER.
+"%NODE%" "%APP%\jade.js" --open %*
 exit /b 0
 :stop
 rem only this Jade: the launcher writes its pid into its own data folder. Every path is quoted, so a home folder with a space ("C:\Users\me two")

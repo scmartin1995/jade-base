@@ -23,7 +23,7 @@ The launcher (`jade.js`) opens Jade in a Chromium "app window" when it can: the 
 - It is still a browser underneath: the right-click menu, refresh and keyboard shortcuts work, and a link to another site opens in the browser.
 - The window's identity is the browser's: on some desktops (for example Linux under Wayland) the window group is named by the browser from the file's address, not by `--class`. The page title and icon (`public/index.html`, `public/icon.svg`) say "Jade".
 - If the browser is already running, the new window opens in that running browser (it hands the request over), so closing the whole browser closes Jade's window too.
-- `scripts/jade` and `scripts/jade.cmd` still open their own windows by their own rules; they do not read the `window` setting.
+- One code path: `scripts/jade` and `scripts/jade.cmd` start the server if needed and then call `node jade.js --open`, which writes the start-link file and opens it through `server/core/browser.js` (it starts no server). They read the `window` setting, `JADE_WINDOW`, `--tab` and `JADE_BROWSER` like `npm start` does.
 
 ## How to tell if this should be revisited
 

@@ -4,6 +4,7 @@ process.title = 'Jade launcher';
 // so editing Jade never needs a manual restart. Open windows reconnect on their own.
 //   node jade.js            start and open the browser
 //   node jade.js --no-open  start without opening a window
+//   node jade.js --open     only open the window, for a Jade that is already running
 //   node jade.js --tab      open a browser tab instead of an app window (also JADE_WINDOW=tab, or `window` in config.json)
 //   JADE_HOME=~/Somewhere   keep data somewhere else (default ~/JadeBase)
 //   JADE_PORT=<number>      change the port (default: DEFAULT_PORT in server/core/config.js)
@@ -12,13 +13,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as config from './server/core/config.js';
-import { openPlan, openWindow, windowMode } from './server/core/browser.js';
-import { openerUrl } from './server/core/opener.js';
+import { openJade } from './server/core/opener.js';
 
 const { JADE_HOME, port } = config;
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const ENTRY = path.join(ROOT, 'server', 'index.js');
 const PORT = port();
+// `node jade.js --open`: only open the window (what scripts/jade and scripts/jade.cmd call once the server is up). Starts no server.
+if (process.argv.includes('--open')) { await openJade({ port: PORT, spawn }); process.exit(0); }
 const BASE = `http://127.0.0.1:${PORT}`;
 const [major] = process.versions.node.split('.').map(Number);
 if (major < 20) { console.error(`Jade needs Node 20 or newer (you have ${process.version}). Get it from https://nodejs.org`); process.exit(1); }
@@ -51,15 +53,7 @@ function openBrowser() {
   if (opened) return;
   opened = true;
   // the window opens a small file in the owner-only data folder that moves on to the start link, so the key is never in a program's arguments
-  let URL;
-  try { URL = openerUrl(PORT); } catch { return console.log(`Open ${BASE} in your browser, using the link Jade showed when it started.`); }
-  const mode = windowMode({ argv: process.argv, config: config.get() });
-  const plan = openPlan({ url: URL, mode });
-  openWindow(plan, {
-    spawn,
-    retry: () => openPlan({ url: URL, mode: 'tab' }),   // the browser file would not run: a tab instead
-    done: used => console.log(used ? used.said : `Open ${BASE} in your browser, using the link Jade showed when it started.`),
-  });
+  openJade({ port: PORT, spawn });
 }
 
 // Only one server at a time: a pending crash-restart and a file-change restart must never both start one.
