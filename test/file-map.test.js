@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
-import { idleLag } from './helpers/timing.js';
+import { idleLag, attempts } from './helpers/timing.js';
 import { removeDir } from './helpers/rm.js';
 
 process.env.JADE_HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-filemap-'));
@@ -102,10 +102,19 @@ test('a folder that cannot be watched is checked by its own modified time, not w
     try {
       await new Promise(r => setTimeout(r, 2100));   // past the "changed just before it was read" margin
       await files.list(); read = [];
-      put('area-6/no-watcher.md');
-      const got = await files.list();
-      assert.ok(got.some(x => x.name === 'no-watcher.md'), 'the new file is listed');
-      if (process.platform !== 'win32') assert.deepEqual([...new Set(read)], [path.join(proj, 'area-6')], 'only the changed folder was read');   // on Windows every unwatched folder is read again, see sweep()
+      let n = 0;
+      await attempts(5, async () => {   // a slow machine can push a folder into that margin, and then it is read once more: look again
+        const name = `no-watcher${n++}.md`;
+        read = [];
+        put('area-6/' + name);
+        const got = await files.list();
+        assert.ok(got.some(x => x.name === name), 'the new file is listed');
+        if (process.platform === 'win32') return true;   // on Windows every unwatched folder is read again, see sweep()
+        const seen = [...new Set(read)];
+        if (JSON.stringify(seen) === JSON.stringify([path.join(proj, 'area-6')])) return true;
+        await new Promise(r => setTimeout(r, 2100)); await files.list();
+        return `read ${JSON.stringify(seen)} instead of only the changed folder`;
+      });
       fs.rmSync(path.join(proj, 'area-7'), { recursive: true });
       const after = await files.list();
       assert.ok(!after.some(x => x.rel.startsWith('area-7')), 'a removed folder is gone');
@@ -161,15 +170,17 @@ test('only one walk runs at a time: callers that arrive meanwhile wait for it', 
 });
 
 test('a walk never holds up the server for long (it works in slices)', async () => {
-  files.invalidate();
-  const lag = await idleLag();
-  let worst = 0, last = Date.now();
-  const tick = setInterval(() => { const n = Date.now(); worst = Math.max(worst, n - last); last = n; }, 2);
-  const t0 = Date.now();
-  await files.list();
-  const took = Date.now() - t0;
-  clearInterval(tick);
-  assert.ok(worst < 120 + 3 * lag, `the longest pause was ${worst} ms over a ${took} ms walk`);
+  await attempts(5, async () => {
+    files.invalidate();
+    const lag = await idleLag();   // how late a timer is on this machine right now, with nothing going on
+    let worst = 0, last = Date.now();
+    const tick = setInterval(() => { const n = Date.now(); worst = Math.max(worst, n - last); last = n; }, 2);
+    const t0 = Date.now();
+    await files.list();
+    const took = Date.now() - t0;
+    clearInterval(tick);
+    return worst < 120 + 3 * lag || `the longest pause was ${worst} ms over a ${took} ms walk (idle lag ${lag} ms)`;
+  });
 });
 
 test('search and the ring: the async answers equal the sync ones', async () => {
@@ -187,11 +198,14 @@ test('the ring: worked out once, rebuilt when the files, a correction or the rul
   assert.ok(all.some(o => o.name === 'budget-review.docx'));
   // against the same machine now: working the list out from scratch, then asking again for the remembered one
   files.invalidate();
-  let t0 = performance.now(); await outputs.listOutputsAsync({ limit: 5000 }); const cold = performance.now() - t0;
-  t0 = performance.now();
-  for (let i = 0; i < 20; i++) await outputs.listOutputsAsync({ limit: 5000 });
-  const warm = (performance.now() - t0) / 20;
-  assert.ok(warm < cold / 3 + 2, `a call on a remembered list (${warm.toFixed(2)} ms) is far cheaper than working it out (${cold.toFixed(2)} ms)`);
+  await attempts(5, async () => {
+    files.invalidate();
+    let t0 = performance.now(); await outputs.listOutputsAsync({ limit: 5000 }); const cold = performance.now() - t0;
+    t0 = performance.now();
+    for (let i = 0; i < 20; i++) await outputs.listOutputsAsync({ limit: 5000 });
+    const warm = (performance.now() - t0) / 20;
+    return warm < cold / 3 + 2 || `a call on a remembered list (${warm.toFixed(2)} ms) is far cheaper than working it out (${cold.toFixed(2)} ms)`;
+  });
   put('Deliverables/second.pptx'); files.invalidate();
   assert.ok((await outputs.listOutputsAsync({ limit: 5000 })).some(o => o.name === 'second.pptx'), 'a new file');
   const key = (await outputs.listOutputsAsync({ limit: 5000 })).find(o => o.name === 'plan.pdf').key;

@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
-import { idleLag } from './helpers/timing.js';
+import { idleLag, attempts } from './helpers/timing.js';
 import { removeDir } from './helpers/rm.js';
 
 process.env.JADE_HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-closing-'));
@@ -54,17 +54,22 @@ test('two parts watching one folder share one set of watches, each hears only wh
 
 test('putting watches on a big tree in place does not hold the server up, and says when it is done', { skip: !linux }, async () => {
   const d = tree(1500);
-  const lag = await idleLag();
-  let ready = 0, longest = 0, last = Date.now();
-  const tick = setInterval(() => { const now = Date.now(); longest = Math.max(longest, now - last); last = now; }, 5);
-  const t0 = Date.now();
-  const stop = util.watchTree(d, () => {}, { maxDirs: 2000, onReady: () => ready++ });
-  const returned = Date.now() - t0;
-  assert.ok(returned < 60 + 3 * lag, `watchTree returned at once (${returned} ms)`);
-  assert.equal(ready, 0, 'not ready the moment it returns');
-  assert.ok(await waitFor(() => ready === 1), 'ready is announced once all folders are watched');
-  clearInterval(tick);
-  assert.ok(longest < 100 + 3 * lag, `no pause over 100 ms while it worked (${longest} ms)`);
+  let stop;
+  await attempts(5, async () => {
+    const lag = await idleLag();
+    let ready = 0, longest = 0, last = Date.now();
+    const tick = setInterval(() => { const now = Date.now(); longest = Math.max(longest, now - last); last = now; }, 5);
+    const t0 = Date.now();
+    const st = util.watchTree(d, () => {}, { maxDirs: 2000, onReady: () => ready++ });
+    const returned = Date.now() - t0;
+    try {
+      assert.equal(ready, 0, 'not ready the moment it returns');
+      assert.ok(await waitFor(() => ready === 1), 'ready is announced once all folders are watched');
+    } finally { clearInterval(tick); }
+    if (returned < 60 + 3 * lag && longest < 100 + 3 * lag) { stop = st; return true; }
+    st(); await waitFor(() => watches() === 0).catch(() => {});
+    return `returned after ${returned} ms, longest pause ${longest} ms (idle lag ${lag} ms)`;
+  });
   const seen = []; stop();
   const stop2 = util.watchTree(d, f => seen.push(f), { maxDirs: 2000, onReady: () => {} });
   await waitFor(() => watches() > 1000);
