@@ -27,6 +27,15 @@ The test also checks, apart from the fixtures, that a warm chat worker builds th
 
 `PATH`, `HOME`, `TMPDIR`, `TEMP`, `TMP`, `PWD`, `OLDPWD`, `_`, `JADE_CLAUDE_HOME`: they hold the temp folders of this run, so they differ every time. `__CF_USER_TEXT_ENCODING` is added to every program macOS starts, so it is left out too. The list is `MACHINE_SPECIFIC` in `scripts/parity-harness.mjs`; keep it short. Everything else the child receives is compared. The harness builds its own parent environment (it does not inherit yours), so the record is the same on every machine. It includes `CLAUDE_EFFORT=medium` because the original record was made with it set.
 
+### Windows: what the harness normalises
+
+The record is the same on every system; the harness (`scripts/parity-harness.mjs`) hides what only Windows has, and nothing in the fixtures was changed for it.
+
+- The stand-in `claude` is written by `test/helpers/stub.js`: on Windows a `.js` file with a `.cmd` shim next to it (found through `PATHEXT`), not a `#!` script. Its name never appears in the record.
+- The child's environment needs `SystemRoot`, `ComSpec` and `PATHEXT` (so `cmd.exe` can start the shim) and `USERPROFILE` (where Windows programs look for the home folder). `WINDIR`, `SYSTEMDRIVE`, `HOMEDRIVE` and `HOMEPATH` are left out the same way. These names are in `WINDOWS_ONLY` in the harness and are removed from `fullEnvs` (case ignored). `PATH` also reaches `System32` there; `PATH` is already left out of the comparison.
+- The temp folder is the real long path (not the 8.3 name `RUNNER~1`). A folder is replaced by its token (`<JADE_HOME>`, `<TMP>`, `<APP>`, `<NODE>`) in all three spellings (`C:\x`, `C:/x`, and `C:\\x` inside a JSON string), and the rest of such a path gets `/` for `\`, so a Windows path reads like the Linux one.
+- Each part has 8 minutes on Windows (starting a `.cmd` shim is slower than a script).
+
 ## What is NOT pinned
 
 Whether the real Claude Code accepts these flags and variables. Nothing here runs a real `claude`; it only proves that Jade's output has not changed. The Windows command quoting is not covered either.

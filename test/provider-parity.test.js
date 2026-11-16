@@ -22,7 +22,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-parity-test-'));
 // order. What is recorded is the same as one long run; the wait is shorter. Each part gets 5 minutes, which is several times what
 // a part takes on a busy machine.
 const SHARDS = Math.max(1, Math.min(4, os.availableParallelism?.() || 2));
-const LIMIT = 5 * 60 * 1000;
+const LIMIT = (process.platform === 'win32' ? 8 : 5) * 60 * 1000;   // starting a .cmd stand-in is slower on Windows
 
 function part(flag, k, n) {
   const out = path.join(tmp, `out${flag ? '-plan' : ''}-${k}.json`);

@@ -220,10 +220,12 @@ test('an agent or project skill that still needs an allowance is not offered to 
   assert.throws(() => jobs.enqueue({ agent: 'skill-runner', input: { skill: 'quarterly-budget' } }), /not been allowed/);
   skills.allowSkill('quarterly-budget');
   assert.ok(skills.match('prepare the quarterly budget report for finance', 5).some(s => s.name === 'quarterly-budget'));
-  assert.doesNotThrow(() => jobs.enqueue({ agent: 'skill-runner', input: { skill: 'quarterly-budget' } }));
+  let started; assert.doesNotThrow(() => { started = jobs.enqueue({ agent: 'skill-runner', input: { skill: 'quarterly-budget' } }); });
   put(path.join(proj, '.claude', 'skills', 'quarterly-budget', 'SKILL.md'), '---\nname: quarterly-budget\ndescription: prepare the quarterly budget report for finance\n---\nsteps changed\n');
   assert.equal(skills.list().find(s => s.name === 'quarterly-budget').allowChanged, true);
   assert.ok(!skills.match('prepare the quarterly budget report for finance', 5).some(s => s.name === 'quarterly-budget'));
+  // let the run end before the test does: its stand-in `claude` works in the data folder, and Windows will not remove a folder a program is in
+  await waitFor(() => ['done', 'error', 'cancelled'].includes(jobs.get(started.id)?.status) || null, { message: 'the skill run to end' });
 });
 
 // ---------------------------------------------------------------- 11. small things

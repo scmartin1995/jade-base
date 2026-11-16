@@ -15,15 +15,16 @@ import path from 'node:path';
 import http from 'node:http';
 import crypto from 'node:crypto';
 import { pathToFileURL } from 'node:url';
+import { writeStub } from '../test/helpers/stub.js';
 
 const [root, out] = process.argv.slice(2).filter(a => !a.startsWith('--')).map(p => path.resolve(p));
 const PLAN = process.argv.includes('--plan');
 const [SHARD, SHARDS] = (/^--shard=(\d+)\/(\d+)$/.exec(process.argv.find(a => a.startsWith('--shard=')) || '') || [0, 1, 1]).slice(1).map(Number);
-const tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'jade-parity-')));   // the real path: on macOS /var is a link to /private/var
+const WIN = process.platform === 'win32';
+const tmp = (WIN ? fs.realpathSync.native : fs.realpathSync)(fs.mkdtempSync(path.join(os.tmpdir(), 'jade-parity-')));   // the real path: on macOS /var is a link to /private/var
 const bin = path.join(tmp, 'bin'), dump = path.join(tmp, 'dump'), home = path.join(tmp, 'home');
 for (const d of [bin, dump, home]) fs.mkdirSync(d, { recursive: true });
-fs.writeFileSync(path.join(bin, 'claude'), `#!${process.execPath}
-const fs = require('node:fs');
+writeStub(bin, 'claude', `const fs = require('node:fs');
 const a = process.argv.slice(2);
 if (a[0] !== '-p' || a.includes('/model')) { if (a[0] === 'auth') process.stdout.write('{}'); process.exit(0); } // Jade's own status calls are not runs
 // the files argv only names are read now, while the run still exists (they are removed when it ends)
@@ -36,7 +37,7 @@ fs.writeFileSync(${JSON.stringify(dump)} + '/run.json', JSON.stringify({ argv: a
 const res = JSON.stringify({ type: 'result', result: 'OK', is_error: false, structured_output: { ok: 1 }, modelUsage: {} }) + '\\n';
 if (a.includes('--input-format')) { let b = ''; process.stdin.on('data', c => { b += c; while (b.includes('\\n')) { b = b.slice(b.indexOf('\\n') + 1); process.stdout.write(res); } }); }
 else { process.stdin.resume(); process.stdin.on('end', () => { process.stdout.write(res); process.exit(0); }); }
-`, { mode: 0o755 });
+`);
 // The parent environment is built here, not inherited, so the record is the same on every machine. Besides PATH and HOME it holds
 // proxy and certificate variables on purpose: they are in the record, so a change that stopped passing them on is seen.
 // CLAUDE_EFFORT=medium was in the environment the original record was made in, so it is kept here on purpose: the engine passes it on.
@@ -46,8 +47,16 @@ const PARENT = { CLAUDE_EFFORT: 'medium', HTTPS_PROXY: 'http://proxy.test:3128',
 // Names left out of the whole-environment comparison because they differ from machine to machine by nature (they hold temp folders
 // of this run). Everything else the child receives is compared. Keep this list short; README explains each name.
 const MACHINE_SPECIFIC = ['PATH', 'HOME', 'JADE_CLAUDE_HOME', 'TMPDIR', 'TEMP', 'TMP', 'PWD', 'OLDPWD', '_', '__CF_USER_TEXT_ENCODING'];   // __CF_USER_TEXT_ENCODING: macOS adds it to every program it starts
+// Windows only: the stand-in `claude` is a .cmd shim, which needs cmd.exe (ComSpec, SystemRoot, PATHEXT) and a PATH that reaches System32, and
+// Windows programs look for the home folder in USERPROFILE. These names exist only there; WINDOWS_ONLY (case ignored) keeps them out of the
+// record so it stays byte-identical to the one made on Linux. Documented in test/fixtures/README.md.
+const WINDOWS_ONLY = ['SYSTEMROOT', 'WINDIR', 'COMSPEC', 'PATHEXT', 'USERPROFILE', 'SYSTEMDRIVE', 'HOMEDRIVE', 'HOMEPATH'];
+const winEnv = {};
+if (WIN) for (const k of Object.keys(process.env)) if (WINDOWS_ONLY.includes(k.toUpperCase())) winEnv[k] = process.env[k];
+const sysRoot = process.env.SystemRoot || process.env.SYSTEMROOT || 'C:\\Windows';
+const parentPath = WIN ? [bin, path.dirname(process.execPath), path.join(sysRoot, 'System32'), sysRoot] : [bin, path.dirname(process.execPath), '/usr/bin', '/bin'];
 for (const k of Object.keys(process.env)) delete process.env[k];
-Object.assign(process.env, PARENT, { PATH: [bin, path.dirname(process.execPath), '/usr/bin', '/bin'].join(path.delimiter), HOME: home,
+Object.assign(process.env, PARENT, winEnv, { PATH: parentPath.join(path.delimiter), HOME: home, ...(WIN ? { USERPROFILE: home } : {}),
   JADE_HOME: path.join(tmp, 'jade'), JADE_CLAUDE_HOME: path.join(tmp, 'claude') });
 
 const HEADERS = ['authorization', 'x-api-key', 'content-type', 'anthropic-version'];   // the ones that carry the key and the format
@@ -89,13 +98,17 @@ const CACHES = { empty: null, discovered: { at: 'x', current: 'sonnet', aliases:
 const CHOICES = ['', 'sonnet', 'haiku', 'opus', 'default', 'fable', 'opus[1m]', 'us.anthropic.claude-sonnet-4-5-20250929-v1:0'];
 
 // ids and paths that differ from run to run
-const norm = s => String(s).split(config.JADE_HOME).join('<JADE_HOME>').split(tmp).join('<TMP>').split(root).join('<APP>').split(process.execPath).join('<NODE>').replace(/"JADE_PORT":"\d+"/, '"JADE_PORT":"<PORT>"').replace(URL_, '<GATEWAY>')
+// A folder in its three spellings (as is, with / and as written inside a JSON string) so a Windows path becomes the same token as a Linux one;
+// the rest of such a path then gets / for \\ so '<JADE_HOME>\\.state\\run' reads '<JADE_HOME>/.state/run'. Nothing changes on Linux and macOS.
+const spell = p => [...new Set([p, p.split('\\').join('/'), JSON.stringify(p).slice(1, -1)])];
+const swap = (str, base, token) => spell(base).reduce((t, v) => t.split(v).join(token), str);
+const norm = s => String(WIN ? swap(swap(swap(swap(String(s), config.JADE_HOME, '<JADE_HOME>'), tmp, '<TMP>'), root, '<APP>'), process.execPath, '<NODE>').replace(/(<(?:JADE_HOME|TMP|APP)>)((?:\\\\|\\|\/)[\w .~@-]+)+/g, m => m.replace(/\\\\|\\/g, '/')) : s).split(config.JADE_HOME).join('<JADE_HOME>').split(tmp).join('<TMP>').split(root).join('<APP>').split(process.execPath).join('<NODE>').replace(/"JADE_PORT":"\d+"/, '"JADE_PORT":"<PORT>"').replace(URL_, '<GATEWAY>')
   .replace(/(system|judge)-[A-Za-z0-9_-]+\.md/g, '$1-ID.md').replace(/(permission[\w-]*?)-[A-Za-z0-9_-]{6,}\.json/g, '$1-ID.json').replace(/(mcp-jade-[\w-]*?)-s[0-9a-f]{8}\.json/g, '$1.json');
 const recorded = () => {
   const f = path.join(dump, 'run.json'); if (!fs.existsSync(f)) return null;
   const r = JSON.parse(fs.readFileSync(f, 'utf8')); fs.rmSync(f);
   const env = {}; for (const k of Object.keys(r.env).sort()) if (/^(ANTHROPIC_|AWS_|CLAUDE_|DISABLE_|NODE_EXTRA|MCP_|JADE_)/.test(k) && k !== 'JADE_CLAUDE_HOME') env[k] = norm(r.env[k]);
-  const fullEnv = {}; for (const k of Object.keys(r.env).sort()) if (!MACHINE_SPECIFIC.includes(k)) fullEnv[k] = norm(r.env[k]);
+  const fullEnv = {}; for (const k of Object.keys(r.env).sort()) if (!MACHINE_SPECIFIC.includes(WIN ? k.toUpperCase() : k) && !WINDOWS_ONLY.includes(k.toUpperCase())) fullEnv[k] = norm(r.env[k]);
   // each file's text is kept once, under a short hash; a run points at it
   const files = {};
   for (const [name, text] of Object.entries(r.files || {})) { const t = norm(text), h = crypto.createHash('sha256').update(t).digest('hex').slice(0, 12); contents[h] = t; files[name] = h; }
