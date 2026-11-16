@@ -35,6 +35,7 @@ The record is the same on every system; the harness (`scripts/parity-harness.mjs
 - The child's environment needs `SystemRoot`, `ComSpec` and `PATHEXT` (so `cmd.exe` can start the shim) and `USERPROFILE` (where Windows programs look for the home folder). `WINDIR`, `SYSTEMDRIVE`, `HOMEDRIVE` and `HOMEPATH` are left out the same way. These names are in `WINDOWS_ONLY` in the harness and are removed from `fullEnvs` (case ignored). `PATH` also reaches `System32` there; `PATH` is already left out of the comparison.
 - The temp folder is the real long path (not the 8.3 name `RUNNER~1`). A folder is replaced by its token (`<JADE_HOME>`, `<TMP>`, `<APP>`, `<NODE>`) in all three spellings (`C:\x`, `C:/x`, and `C:\\x` inside a JSON string), and the rest of such a path gets `/` for `\`, so a Windows path reads like the Linux one.
 - Each part has 8 minutes on Windows (starting a `.cmd` shim is slower than a script).
+- On Windows the whole-environment comparison folds names to upper case (the fixture holds both `HTTPS_PROXY` and `https_proxy`, which are one variable there) and ignores `PROMPT`, which `cmd.exe` adds when it runs a `.cmd` shim. The fixtures are not changed for this; the folding is in `test/provider-parity.test.js`.
 
 ## What is NOT pinned
 

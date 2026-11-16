@@ -46,11 +46,20 @@ const frozen = f => JSON.parse(fs.readFileSync(path.join(ROOT, 'test/fixtures', 
 // A run (or scenario) points at the text of each file the engine was handed by a hash; compare the text, so a failure shows the words that changed.
 const withText = (rec, contents) => (rec.files ? { ...rec, files: Object.fromEntries(Object.entries(rec.files).map(([n, h]) => [n, contents[h]])) } : rec);
 
+// Windows environment names ignore case, and cmd.exe adds PROMPT when it starts a .cmd shim: on win32 only, compare the whole
+// environment with names folded to upper case (a lower-case and an upper-case copy of one name are one variable) and without PROMPT.
+const foldEnv = env => {
+  if (process.platform !== 'win32') return env;
+  const out = {};
+  for (const [k, v] of Object.entries(env)) if (k.toUpperCase() !== 'PROMPT') out[k.toUpperCase()] = v;
+  return out;
+};
+
 function compare(now, want) {
   assert.deepEqual(Object.keys(now.envs), Object.keys(want.envs), 'same set-ups');
   for (const k of Object.keys(want.envs)) assert.deepEqual(now.envs[k], want.envs[k], `env for ${k}`);
   assert.deepEqual(Object.keys(now.fullEnvs), Object.keys(want.fullEnvs), 'same set-ups (whole environment)');
-  for (const k of Object.keys(want.fullEnvs)) assert.deepEqual(now.fullEnvs[k], want.fullEnvs[k], `whole environment for ${k}`);
+  for (const k of Object.keys(want.fullEnvs)) assert.deepEqual(foldEnv(now.fullEnvs[k]), foldEnv(want.fullEnvs[k]), `whole environment for ${k}`);
   assert.deepEqual(Object.keys(now.extras), Object.keys(want.extras), 'same extra scenarios');
   for (const k of Object.keys(want.extras)) assert.deepEqual(withText(now.extras[k], now.contents), withText(want.extras[k], want.contents), k);
   assert.deepEqual(Object.keys(now.runs), Object.keys(want.runs), 'same runs');
