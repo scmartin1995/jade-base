@@ -324,7 +324,7 @@ let stops = [];
 function watchUntilThere(dir, root, onChange) {
   let up = path.dirname(dir), next = path.basename(dir);
   while (!fs.existsSync(up)) { if (path.resolve(up) === path.resolve(root) || up === path.dirname(up)) return () => {}; next = path.basename(up); up = path.dirname(up); }
-  try { const w = fs.watch(up, (ev, f) => { if (!f || String(f) === next) onChange(); }); w.on('error', () => { try { w.close(); } catch {} }); return () => w.close(); }   // a watch that fails (Windows: EPERM when the folder is removed) must not crash the server
+  try { const w = fs.watch(up, (ev, f) => { if (!f || String(f) === next) onChange(); }); w.on('error', () => { try { w.close(); } catch {} }); w.unref?.(); return () => w.close(); }   // a watch that fails (Windows: EPERM when the folder is removed) must not crash the server
    catch { return () => {}; }
 }
 const changed = debounce(() => { emit('agents', {}); emit('data', { kind: 'agents' }); }, 250);
@@ -345,7 +345,7 @@ export function watch() {
       stops.push(fs.existsSync(dir) ? watchTree(dir, debounce(fire, 300)) : watchUntilThere(dir, root, () => { rearm(); fire(); }));
     }
     stops.push(watchTree(path.join(home, 'plugins'), f => { if (/installed_plugins\.json$|[\\/]agents[\\/]/.test(f)) changed(); }, { maxDirs: 200 }));
-    try { const w = fs.watch(home, (ev, f) => { if (['agents', 'plugins'].includes(String(f))) { rearm(); changed(); } }); w.on('error', () => { try { w.close(); } catch {} }); stops.push(() => w.close()); } catch { /* no claude home yet */ }
+    try { const w = fs.watch(home, (ev, f) => { if (['agents', 'plugins'].includes(String(f))) { rearm(); changed(); } }); w.on('error', () => { try { w.close(); } catch {} }); w.unref?.(); stops.push(() => w.close()); } catch { /* no claude home yet */ }
   };
   const rearm = debounce(arm, 300);
   arm();

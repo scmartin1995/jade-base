@@ -178,6 +178,7 @@ export function watchTree(root, cb, { skip = /(^|[\\/])(\.git|node_modules|\.cac
     try {
       const w = fs.watch(root, { recursive: true }, (ev, f) => { if (f && !skip.test(String(f))) cb(String(f)); });
       w.on('error', () => { doubt = true; });
+      w.unref?.();   // a watch alone never keeps a process alive
       ready();
       const stop = () => { closed = true; w.close(); };
       stop.trusted = () => !closed && !doubt;
@@ -197,6 +198,7 @@ export function watchTree(root, cb, { skip = /(^|[\\/])(\.git|node_modules|\.cac
     let w;
     try { w = fs.watch(dir, (ev, f) => onEvent(dir, f, ev)); }
     catch (e) { if (e.code !== 'ENOENT') doubt = true; return; }   // a folder that vanished is not a failure; one that could not be watched is
+    w.unref?.();
     w.on('error', () => { try { w.close(); } catch {} if (watchers.get(dir) === w) { watchers.delete(dir); inodes.delete(dir); if (fs.existsSync(dir)) doubt = true; } });
     watchers.set(dir, w); inodes.set(dir, inodeOf(dir));
     let made = 0;

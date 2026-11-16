@@ -22,7 +22,9 @@ const PER_TEST = minutes('JADE_TEST_TIMEOUT_MIN', 12), STALL = minutes('JADE_TES
 const help = spawnSync(process.execPath, ['--help'], { encoding: 'utf8' }).stdout || '';
 const dir = mkdtempSync(join(tmpdir(), 'jade-testrun-'));
 const statusFile = join(dir, 'status.json');
-const nodeArgs = ['--test', ...(help.includes('--test-timeout') ? [`--test-timeout=${PER_TEST}`] : []), `--test-reporter=${pathToFileURL(join(root, 'scripts', 'test-reporter.mjs')).href}`, '--test-reporter-destination=stdout', '--import', './test/setup.js', ...files];
+// JADE_TEST_FORCE_EXIT=1 adds --test-force-exit (a file's process is ended when its tests are done), where this Node has the flag.
+const forceExit = process.env.JADE_TEST_FORCE_EXIT === '1' && help.includes('--test-force-exit');
+const nodeArgs = ['--test', ...(help.includes('--test-timeout') ? [`--test-timeout=${PER_TEST}`] : []), ...(forceExit ? ['--test-force-exit'] : []), `--test-reporter=${pathToFileURL(join(root, 'scripts', 'test-reporter.mjs')).href}`, '--test-reporter-destination=stdout', '--import', './test/setup.js', ...files];
 const child = spawn(process.execPath, nodeArgs, { cwd: root, stdio: ['inherit', 'pipe', 'inherit'], env: { ...process.env, JADE_TEST_STATUS: statusFile } });
 let lastOutput = Date.now();
 const started = Date.now();
@@ -35,10 +37,10 @@ function stop() {
 function giveUp(why) {
   let seen = {};
   try { seen = JSON.parse(readFileSync(statusFile, 'utf8')); } catch { /* none written */ }
-  const rows = Object.entries(seen).sort((a, b) => a[1].at - b[1].at).slice(0, 6);
-  console.error(`\nThe test run ${why}. Test files by how long ago they last did anything (the first ones are the ones it is waiting for):`);
+  const rows = Object.entries(seen).filter(([, v]) => !v.done).sort((a, b) => a[1].at - b[1].at).slice(0, 6);
+  console.error(`\nThe test run ${why}. Test files that have not finished, by how long ago they last did anything (finished files are left out):`);
   for (const [f, v] of rows) console.error(`  ${f}: ${Math.round((Date.now() - v.at) / 1000)} s ago, last ${v.event.replace('test:', '')} "${v.last}"`);
-  if (!rows.length) console.error('  (no test had started)');
+  if (!rows.length) console.error(Object.keys(seen).length ? '  (every test file that started has finished; a process may be left running after its tests)' : '  (no test had started)');
   stop();
   rmSync(dir, { recursive: true, force: true });
   process.exit(1);

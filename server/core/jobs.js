@@ -128,6 +128,7 @@ export function enqueueAndWait(opts) {
       if (!cur || ['done', 'error', 'cancelled'].includes(cur.status)) { clearInterval(t); resolve(cur); }
     };
     const t = setInterval(check, 300);
+    t.unref?.();
   });
 }
 

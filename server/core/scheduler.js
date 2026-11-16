@@ -107,7 +107,9 @@ export function tick() {
   if (changed) { writeJSON(FILE(), last); emit('schedule', {}); }
 }
 
+/** Start the schedule; returns a function that stops it. The timers never keep a process alive on their own. */
 export function start() {
-  setTimeout(tick, 4000);
-  setInterval(tick, 60e3);
+  const first = setTimeout(tick, 4000), every = setInterval(tick, 60e3);
+  first.unref?.(); every.unref?.();
+  return () => { clearTimeout(first); clearInterval(every); };
 }
