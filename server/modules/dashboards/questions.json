@@ -1,0 +1,16 @@
+{
+  "questions": [
+    { "id": "name", "type": "text", "label": "What should this dashboard be called?", "help": "A short name, such as \"Steering committee view\".", "required": true, "placeholder": "e.g. Weekly status" },
+    { "id": "audience", "type": "text", "label": "Who is it for?", "help": "Jade writes it for that reader: how much detail, and which words.", "required": true, "placeholder": "e.g. the steering committee, or just me" },
+    { "id": "show", "type": "multi", "label": "What should it show?", "help": "Tick what you want on the page. Jade lists what it holds for this project.", "required": true, "other": true, "optionsFrom": "show" },
+    { "id": "files", "type": "files", "label": "Which files hold the facts?", "help": "Tick the files with figures or status the page should rely on. Leave empty if Jade's own records are enough.", "optionsFrom": "files", "emptyText": "No files were found in this project's folders yet." },
+    { "id": "since", "type": "choice", "label": "How far back should it look?", "required": true, "options": [
+      { "value": "week", "label": "The last week" },
+      { "value": "month", "label": "The last month" },
+      { "value": "quarter", "label": "The last three months" },
+      { "value": "year", "label": "The last year" },
+      { "value": "all", "label": "Everything" } ] },
+    { "id": "like", "type": "choice", "label": "Should it look like a page you already have?", "help": "Optional. Jade copies what the page shows (its sections and figures), not its colours.", "optionsFrom": "exemplars" },
+    { "id": "notes", "type": "longtext", "label": "Anything about layout or wording?", "help": "Optional. For example \"big numbers at the top\" or \"plain English, no jargon\"." }
+  ]
+}

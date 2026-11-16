@@ -1,0 +1,24 @@
+{
+  "file": "payroll-upgrade-risk-review.txt",
+  "date": "2026-11-12",
+  "keyPoints": [
+    { "text": "A change freeze on payroll rules runs from 1 December until the end of the second pay run.", "quote": "So we have a change freeze from the first of December until the end of the second pay run." },
+    { "text": "The vendor has signed off the upgrade package and the pay run calculations tested well.", "quote": "The vendor has signed off the upgrade package. Test results are good on the pay run calculations." }
+  ],
+  "actions": [
+    { "text": "Email all department heads about the freeze", "owner": "Gwen", "due": "by end of day tomorrow", "isoDue": "2026-11-13", "quote": "I'll email them all by end of day tomorrow." },
+    { "text": "Write the rollback plan", "owner": "Freya", "due": "before the freeze", "isoDue": null, "quote": "Give me this one, I'll do it." },
+    { "text": "Test a restore of the payroll database from backup", "owner": "Ibrahim", "due": "before the freeze", "isoDue": null, "quote": "I'll test a restore before the freeze and tell you what happens." },
+    { "text": "Send the board a summary", "owner": "Gwen", "due": "next Friday", "isoDue": null, "dueAmbiguous": true, "quote": "I'll send the board a summary next Friday." }
+  ],
+  "risks": [
+    { "kind": "issue", "text": "The test environment is on version 7 while production is on version 9, so testing was on the wrong version.", "raisedBy": "Colm", "quote": "It's still on version 7. Production is on version 9." },
+    { "kind": "issue", "text": "Nobody has tried restoring the payroll database from a backup.", "raisedBy": "Ibrahim", "quote": "Nobody has actually tried restoring the payroll database from last night's backup." },
+    { "kind": "risk", "text": "Only Ibrahim knows the vendor's API, so his absence would block the upgrade.", "raisedBy": "Freya", "quote": "if Ibrahim is off sick on the first of December, we are stuck." }
+  ],
+  "traps": [
+    { "what": "Colm offered to write the rollback plan then gave it to Freya.", "quote": "I'll write the rollback plan." },
+    { "what": "Raising the test environment with the vendor was explicitly not made a task.", "quote": "I won't make that an official task until we know the cost." },
+    { "what": "Barrier, sandwiches and fire drill are small talk.", "quote": "The fire drill is Tuesday, so nobody panic when the alarm goes." }
+  ]
+}

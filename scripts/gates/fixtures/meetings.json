@@ -1,0 +1,39 @@
+{
+  "projects": [{ "id": "apollo", "name": "Apollo rollout", "archived": false }],
+  "meetings": [
+    {
+      "id": "mt-review", "project": "apollo", "title": "Steering committee", "date": "2026-11-12", "attendees": ["Priya", "Sam"],
+      "source": { "name": "steerco.vtt", "path": "/tmp/steerco.vtt", "hash": "aaa" },
+      "status": "review", "error": null, "pausedUntil": null,
+      "skills": [
+        { "skill": "key-points", "heading": "Key points", "saveTo": "record", "show": ["text"], "items": [
+          { "id": "k1", "fields": { "text": "Go-live moves to March." }, "quote": "we are moving go-live to March", "codeCheck": { "ok": true, "reason": null }, "verdict": "supported", "note": "", "evidence": "", "instruction": "", "accepted": null },
+          { "id": "k2", "fields": { "text": "Budget was approved." }, "quote": "the budget is fine", "codeCheck": { "ok": true, "reason": null }, "verdict": "wrong", "note": "Budget was only discussed, not approved.", "evidence": "", "instruction": "", "accepted": null }
+        ] },
+        { "skill": "action-items", "heading": "Action items", "saveTo": "actions", "show": ["text", "owner", "due"], "items": [
+          { "id": "a1", "fields": { "text": "Send the revised plan", "owner": "Priya", "due": "2026-11-19" }, "quote": "Priya will send the revised plan next week", "codeCheck": { "ok": true, "reason": null }, "verdict": "supported", "note": "", "evidence": "", "instruction": "", "accepted": true },
+          { "id": "a2", "fields": { "text": "Book the venue", "owner": "Sam", "due": "" }, "quote": "someone should book the venue", "codeCheck": { "ok": false, "reason": "The quote is not word for word in the transcript." }, "verdict": "not-checked", "note": "", "evidence": "", "instruction": "", "accepted": null }
+        ] },
+        { "skill": "risks-issues", "heading": "Risks and issues", "saveTo": "record", "show": ["text"], "items": [
+          { "id": "r1", "fields": { "text": "Vendor may miss delivery." }, "quote": "the vendor might slip", "codeCheck": { "ok": true, "reason": null }, "verdict": "not-asked", "note": "That is a comment, not a risk.", "evidence": "", "instruction": "", "accepted": false },
+          { "id": "r2", "fields": { "text": "Testing window is short." }, "quote": "we only have two weeks to test", "codeCheck": { "ok": true, "reason": null }, "verdict": "not-checked", "note": "", "evidence": "", "instruction": "", "accepted": null }
+        ] }
+      ],
+      "missed": [{ "skill": "action-items", "text": "Confirm the training dates", "quote": "we still need training dates" }],
+      "counts": { "passed": 2, "corrected": 0, "notChecked": 2 }, "steps": [{ "name": "read", "model": "", "ms": 120, "ok": true, "error": null }],
+      "recordPath": null, "createdAt": "2026-11-12T09:00:00.000Z", "updatedAt": "2026-11-12T09:02:00.000Z"
+    },
+    {
+      "id": "mt-done", "project": "apollo", "title": "Kick-off", "date": "2026-11-05", "attendees": ["Priya"],
+      "source": { "name": "kickoff.txt", "path": "/tmp/kickoff.txt", "hash": "bbb" },
+      "status": "recorded", "error": null, "pausedUntil": null,
+      "skills": [
+        { "skill": "action-items", "heading": "Action items", "saveTo": "actions", "show": ["text", "owner"], "items": [
+          { "id": "d1", "fields": { "text": "Set up the shared folder", "owner": "Priya" }, "quote": "Priya will set up the shared folder", "codeCheck": { "ok": true, "reason": null }, "verdict": "supported", "note": "", "evidence": "", "instruction": "", "accepted": true }
+        ] }
+      ],
+      "missed": [], "counts": { "passed": 1, "corrected": 0, "notChecked": 0 }, "steps": [],
+      "recordPath": "/tmp/Apollo/Meetings/2026-11-05 Kick-off.md", "createdAt": "2026-11-05T09:00:00.000Z", "updatedAt": "2026-11-05T09:10:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "type": "object",
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": { "type": "string", "enum": ["risk", "issue"] },
+          "text": { "type": "string", "description": "What might go wrong, or what is wrong" },
+          "impact": { "type": "string", "description": "What was said would result; empty if not said" },
+          "raised_by": { "type": "string", "description": "Who said it, as named in the transcript; empty if unknown" },
+          "quote": { "type": "string", "description": "Exact words from the transcript" }
+        },
+        "required": ["kind", "text", "impact", "raised_by", "quote"]
+      }
+    }
+  },
+  "required": ["items"],
+  "x-jade": { "heading": "Risks and issues", "quoteField": "quote", "saveTo": "record", "show": ["kind", "text", "impact", "raised_by"], "longText": ["text", "impact"] }
+}

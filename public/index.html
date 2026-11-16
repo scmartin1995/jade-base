@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="jade-token" content="">
+  <meta name="theme-color" content="#090f0d">
+  <meta name="description" content="Jade — a personal agentic OS for project managers.">
+  <title>Jade</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..500&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Unbounded:wght@300;400&display=swap">
+  <link rel="stylesheet" href="/css/jade.css" id="css-main">
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="menubar" id="menubar">
+    <a class="mb-brand" href="#/home" aria-label="Jade home"><b id="brand-name">Jade</b></a>
+    <span class="mb-crumb" id="crumb"></span>
+    <span class="mb-spacer"></span>
+    <button class="mb-item" id="mb-agents" title="Agent activity"></button>
+    <button class="mb-item" id="mb-voice" title="Voice"></button>
+    <button class="mb-item mb-engine" id="mb-engine" title="Engine"></button>
+    <span class="mb-clock" id="mb-clock"></span>
+  </header>
+
+  <div id="nav-progress" aria-hidden="true"></div>
+  <main class="view" id="view" tabindex="-1"><div class="view-inner"></div></main>
+
+  <nav class="dock" id="dock" aria-label="Main"></nav>
+
+  <!-- Spotlight-style "Ask Jade" -->
+  <div class="spot-wrap" id="spot" hidden>
+    <div class="spot-core" id="spot-core"></div>
+    <form class="spot" id="cmd" autocomplete="off" role="search">
+      <span class="spot-gem gem" aria-hidden="true"></span>
+      <label for="cmd-input" class="hidden">Ask Jade</label>
+      <input id="cmd-input" placeholder="Ask Jade anything…" enterkeyhint="send">
+      <button type="button" class="mic" id="mic" title="Talk to Jade" aria-label="Talk to Jade"></button>
+      <button type="submit" class="send" aria-label="Send" id="send-btn"></button>
+      <div class="spot-hints" id="spot-hints"></div>
+      <div class="spot-files" id="spot-files"></div>
+    </form>
+  </div>
+
+  <div class="scrim" id="scrim"></div>
+  <aside class="drawer" id="drawer" aria-label="Conversation and activity">
+    <header>
+      <span class="gem" aria-hidden="true"></span>
+      <h2 id="drawer-title">Agent activity</h2>
+      <button class="btn ghost icon" id="drawer-close" aria-label="Close"></button>
+    </header>
+    <div class="body" id="drawer-body"></div>
+    <footer id="drawer-foot"></footer>
+  </aside>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>

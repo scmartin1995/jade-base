@@ -1,0 +1,62 @@
+Northfield Borough - Payroll system upgrade, risk review
+Date: Thursday 12 November 2026
+Present: Gwen, Ibrahim, Colm, Freya
+
+[00:00:04] Gwen: Right, is everyone here? Colm, you look like you've been running.
+[00:00:09] Colm: Parking. Don't ask. The barrier was broken again.
+[00:00:15] Freya: It's always the barrier. Did anyone get the sandwiches order in?
+[00:00:21] Gwen: Not now. Let's start. We have the upgrade on the calendar for the first of December and I want to know if we are ready.
+[00:00:33] Ibrahim: Short answer, mostly.
+[00:00:37] Gwen: Mostly is not an answer I can give the board.
+[00:00:42] Ibrahim: Okay. The vendor has signed off the upgrade package. Test results are good on the pay run calculations.
+[00:00:55] Gwen: Good. So the date holds?
+[00:00:58] Colm: I think the date holds. Actually, wait, I want a freeze. No changes to the payroll rules from the first of December until the second pay run is done.
+[00:01:12] Freya: Agreed. Otherwise we can't tell what broke what.
+[00:01:17] Gwen: Fine. So we have a change freeze from the first of December until the end of the second pay run. Everyone happy?
+[00:01:26] Ibrahim: Happy.
+[00:01:28] Colm: Yes.
+[00:01:30] Freya: Yes.
+[00:01:33] Gwen: Then department heads need to be told. I'll email them all by end of day tomorrow.
+[00:01:42] Ibrahim: They'll complain.
+[00:01:44] Gwen: They always do.
+[00:01:48] Freya: Can we talk about the rollback? We don't have a written plan.
+[00:01:54] Colm: I'll write the rollback plan.
+[00:01:58] Freya: You wrote the last one and it was twelve pages of nothing. Give me this one, I'll do it.
+[00:02:05] Colm: Fine, honestly, yours. I have enough.
+[00:02:10] Gwen: Freya, so you'll have it written when?
+[00:02:14] Freya: Before the freeze. I'll aim for the week before.
+[00:02:20] Gwen: Okay.
+[00:02:24] Ibrahim: Something else on backups. Nobody has actually tried restoring the payroll database from last night's backup.
+[00:02:33] Gwen: That seems important.
+[00:02:36] Ibrahim: It is. I'll test a restore before the freeze and tell you what happens.
+[00:02:44] Gwen: Thank you.
+[00:02:47] Colm: Can I raise the test environment? It's still on version 7. Production is on version 9. So half of what we tested isn't the same as what we're upgrading.
+[00:03:00] Gwen: Is that a blocker?
+[00:03:03] Colm: It's wrong already, whether it's a blocker I don't know. We tested on the wrong version.
+[00:03:12] Freya: Can it be fixed before the first?
+[00:03:16] Colm: Not sure. The vendor would have to rebuild it.
+[00:03:22] Gwen: Mm. Let's leave it, Colm, you can raise it with the vendor if you want, but I won't make that an official task until we know the cost.
+[00:03:33] Colm: Okay.
+[00:03:36] Freya: Another thing, and I hate saying this. Everything about the vendor's API is in Ibrahim's head.
+[00:03:44] Ibrahim: Thanks, Freya.
+[00:03:47] Freya: No, I mean it, if Ibrahim is off sick on the first of December, we are stuck. Nobody else can do it.
+[00:03:56] Gwen: Yes. That's a worry for sure. Ibrahim, no pressure, stay healthy.
+[00:04:03] Ibrahim: Ha. I'll try.
+[00:04:07] Gwen: Right. The board. They want a summary of where we are. I'll send the board a summary next Friday.
+[00:04:16] Colm: Next Friday as in tomorrow, or the Friday after?
+[00:04:20] Gwen: Hm. I'll say the Friday after, but don't hold me to that.
+[00:04:26] Gwen: Actually let me just say next Friday.
+[00:04:31] Freya: Okay.
+[00:04:34] Colm: It was a good meeting. I thought it would be worse.
+[00:04:39] Gwen: Don't jinx it. Lunch anyone?
+[00:04:42] Freya: Yes please.
+[00:04:44] Ibrahim: Sandwiches are finally on their way, I just got a message.
+[00:04:49] Gwen: Wonderful. Before we stop, is there anything I've missed?
+[00:04:54] Freya: The fire drill is Tuesday, so nobody panic when the alarm goes.
+[00:04:59] Colm: I'll be the one panicking.
+[00:05:03] Ibrahim: It's always you.
+[00:05:06] Gwen: Right. That's everything. Thanks all.
+[00:05:09] Freya: Bye.
+[00:05:10] Colm: Bye.
+[00:05:11] Ibrahim: Bye, see you in the canteen.
+[00:05:13] Gwen: Stopping the recording.

@@ -1,0 +1,230 @@
+{
+  "version": 0,
+  "about": "Agreed examples for the file ring's rules. Generic names on purpose. Paths are relative to the folder that holds the project folders. 'cases' use the default rules; 'ruleCases' use 'rules' (what a user sets under output.rules). 'flags' lists flags that must be present; 'overrideCases' map a path to a correction applied first.",
+  "cases": [
+    {
+      "path": "ProjectA/Sessions/260101_Topic/Output/260102_Topic_Guide.html",
+      "class": "output"
+    },
+    {
+      "path": "ProjectA/Sessions/260101_Topic/Output/260102_Topic_Summary.docx",
+      "class": "output"
+    },
+    {
+      "path": "ProjectA/Sessions/260101_Topic/Output/260102_Topic_Slides.pptx",
+      "class": "output"
+    },
+    {
+      "path": "ProjectA/Sessions/260101_Topic/Output/Summary.PDF",
+      "class": "output"
+    },
+    {
+      "path": "ProjectA/Sessions/260101_Topic/Output/data_export.csv",
+      "class": "output"
+    },
+    {
+      "path": "ProjectA/Sessions/260101_Topic/Output/260102_Topic_Notes.md",
+      "class": "note"
+    },
+    {
+      "path": "ProjectA/Sessions/260101_Topic/Output/index.md",
+      "class": "system"
+    },
+    {
+      "path": "ProjectA/Sessions/260101_Topic/Output/build.ps1",
+      "class": "tool"
+    },
+    {
+      "path": "ProjectA/Sessions/260101_Topic/Output/dashboard_template.html",
+      "class": "working"
+    },
+    {
+      "path": "ProjectA/Sessions/260101_Topic/Output/_archive/old_version.docx",
+      "class": "archive"
+    },
+    {
+      "path": "ProjectA/Sessions/260101_Topic/Output/report.docx.bak-261105",
+      "class": "ignore"
+    },
+    {
+      "path": "ProjectA/Sessions/260101_Topic/Input/transcript.vtt",
+      "class": "input"
+    },
+    {
+      "path": "ProjectA/Sessions/260101_Topic/Input/source_data.xlsx",
+      "class": "input"
+    },
+    {
+      "path": "ProjectA/Sessions/260101_Topic/work/build.js",
+      "class": "tool"
+    },
+    {
+      "path": "ProjectA/Sessions/260101_Topic/work/draft.html",
+      "class": "working"
+    },
+    {
+      "path": "ProjectA/Sessions/260101_Topic/_README.md",
+      "class": "system"
+    },
+    {
+      "path": "ProjectA/Sessions/260101_Topic/_archive/scratch_chunk.tsv",
+      "class": "archive"
+    },
+    {
+      "path": "ProjectA/Raw/photo.png",
+      "class": "input"
+    },
+    {
+      "path": "ProjectA/Raw/Transcripts/standup.vtt",
+      "class": "input"
+    },
+    {
+      "path": "ProjectA/input/notes/meeting.md",
+      "class": "input"
+    },
+    {
+      "path": "ProjectA/Tools/build_dashboard.ps1",
+      "class": "tool"
+    },
+    {
+      "path": "ProjectA/Tools/dashboard_ratings.csv",
+      "class": "tool"
+    },
+    {
+      "path": "ProjectA/Tools/build_dashboard.ps1.bak-261105",
+      "class": "ignore"
+    },
+    {
+      "path": "ProjectA/Tools/dashboard_ratings.csv.bak_261109",
+      "class": "ignore"
+    },
+    {
+      "path": "ProjectA/x/export.csv",
+      "class": "working"
+    },
+    {
+      "path": "ProjectA/_index.md",
+      "class": "system"
+    },
+    {
+      "path": "ProjectA/dashboard.html",
+      "class": "output"
+    },
+    {
+      "path": "ProjectA/output/final_report.pdf",
+      "class": "output"
+    },
+    {
+      "path": "ProjectA/.obsidian/workspace.json",
+      "class": "ignore"
+    },
+    {
+      "path": "skills/some-skill/SKILL.md",
+      "class": "skill"
+    },
+    {
+      "path": "skills/some-skill/notes.md",
+      "class": "skill"
+    },
+    {
+      "path": "log.md",
+      "class": "system"
+    },
+    {
+      "path": "CLAUDE.md",
+      "class": "system"
+    },
+    {
+      "path": "LooseSlides.pptx",
+      "class": "output",
+      "flags": [
+        "loose"
+      ]
+    },
+    {
+      "path": "ProjectA/LooseSummary.docx",
+      "class": "output",
+      "flags": [
+        "loose"
+      ]
+    },
+    {
+      "path": "ProjectA\\Sessions\\260101_Topic\\Output\\Windows_Style.docx",
+      "class": "output"
+    },
+    {
+      "path": "ProjectA/Sessions/260101_Topic/OUTPUT/Upper_Case.PPTX",
+      "class": "output"
+    }
+  ],
+  "overrideCases": [
+    {
+      "path": "ProjectA/Sessions/260101_Topic/Output/Notes.docx",
+      "overrides": {
+        "ProjectA/Sessions/260101_Topic/Output/Notes.docx": "not-output"
+      },
+      "class": "working",
+      "flags": [
+        "overridden"
+      ]
+    },
+    {
+      "path": "ProjectA/Sessions/260101_Topic/work/final.docx",
+      "overrides": {
+        "ProjectA/Sessions/260101_Topic/work/final.docx": "output"
+      },
+      "class": "output",
+      "flags": [
+        "overridden"
+      ]
+    }
+  ],
+  "rules": {
+    "bundleDir": "client facing",
+    "recordDirs": [
+      "records"
+    ],
+    "systemNames": [
+      "index.md",
+      "_index.md",
+      "readme.md",
+      "_readme.md",
+      "log.md",
+      "claude.md",
+      "manifest.md",
+      "move-log.csv"
+    ]
+  },
+  "ruleCases": [
+    {
+      "path": "ProjectA/Client Facing/260102_Overview.pptx",
+      "class": "output"
+    },
+    {
+      "path": "ProjectA/Client Facing/260102_Bundle/index.html",
+      "class": "output",
+      "flags": [
+        "bundle:lead"
+      ]
+    },
+    {
+      "path": "ProjectA/Client Facing/260102_Bundle/assets/chart.png",
+      "class": "output",
+      "flags": [
+        "bundle:member"
+      ]
+    },
+    {
+      "path": "ProjectA/Records/record-topic.md",
+      "class": "record"
+    },
+    {
+      "path": "ProjectA/Records/tool-topic-dashboard.html",
+      "class": "output"
+    },
+    {
+      "path": "ProjectA/move-log.csv",
+      "class": "system"
+    }
+  ]
+}

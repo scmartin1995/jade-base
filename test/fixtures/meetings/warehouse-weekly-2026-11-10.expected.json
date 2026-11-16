@@ -1,0 +1,27 @@
+{
+  "file": "warehouse-weekly-2026-11-10.vtt",
+  "date": "2026-11-10",
+  "keyPoints": [
+    { "text": "The cutover is now in two phases: chilled goods on the 22nd, ambient goods on the 29th.", "quote": "Two phases, chilled on the 22nd and ambient on the 29th." },
+    { "text": "Finance cut the contingency from 15 to 10 percent.", "quote": "Finance has cut the contingency from 15 to 10 percent." }
+  ],
+  "actions": [
+    { "text": "Confirm the new dates with the carrier", "owner": "Marcus", "due": "by Thursday", "isoDue": "2026-11-12", "quote": "Yes, I'll confirm with them by Thursday." },
+    { "text": "Call the scanner supplier and ask for ten early", "owner": "Elena", "due": "tomorrow", "isoDue": "2026-11-11", "quote": "Fine, I'll call them tomorrow and ask for ten early." },
+    { "text": "Send the training agency the numbers once the headcount is confirmed", "owner": "Priya", "due": "", "isoDue": null, "quote": "I'll send the agency the numbers once Tomasz confirms the headcount." },
+    { "text": "Send the confirmed chilled headcount", "owner": "Tomasz", "due": "by Monday", "isoDue": "2026-11-16", "quote": "I'll get you the headcount by Monday." }
+  ],
+  "risks": [
+    { "kind": "issue", "text": "The scanners arrive after the first phase, when the chilled team needs them.", "raisedBy": "Priya", "quote": "The supplier says delivery is the first week of December. Which is after the first phase." },
+    { "kind": "risk", "text": "If the scanners are late and some must be rented, the reduced contingency would be used up.", "raisedBy": "Priya", "quote": "If the scanners are late and we need to rent some, we'd blow through it." },
+    { "kind": "issue", "text": "The carrier's booking portal has been down since Friday, so slots cannot be booked.", "raisedBy": "Marcus", "quote": "the carrier's booking portal has been down since Friday so I can't even book slots." }
+  ],
+  "traps": [
+    { "what": "Priya offered to chase the supplier, then handed it to Elena. Not an action for Priya.", "quote": "I could chase them. Actually no, Elena has the relationship with the supplier, it should be Elena." },
+    { "what": "Marcus offered to collect the Leeds scanners then withdrew.", "quote": "I can collect the old scanners from Leeds. Actually no, I'm off from the 17th. Scrap that, somebody else." },
+    { "what": "Leeds scanners are plan B with nobody to act. Not an action.", "quote": "Let's park the Leeds idea as plan B. Nobody needs to act on it yet." },
+    { "what": "Headcount of 32 is a guess ('don't quote me'), not a fact.", "quote": "Thirty-two on chilled. I think. Don't quote me on that." },
+    { "what": "The agency's deadline is not Priya's due date for sending numbers.", "quote": "The agency wants numbers by the end of next week." },
+    { "what": "Small talk and agenda.", "quote": "my dog is going mad at the postman" }
+  ]
+}

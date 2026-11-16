@@ -1,0 +1,123 @@
+{
+ "spec": {
+  "title": "Gate view <b>bold</b>",
+  "intro": "Intro <i>text</i> <script>window.__pwn=1</script>",
+  "sections": [
+   {
+    "layout": "headline",
+    "title": "At a glance",
+    "figures": [
+     {
+      "label": "Open actions",
+      "source": "actions",
+      "filter": [
+       {
+        "field": "status",
+        "op": "is",
+        "value": "open"
+       }
+      ]
+     },
+     {
+      "label": "Overdue",
+      "source": "actions",
+      "filter": [
+       {
+        "field": "overdue",
+        "op": "is",
+        "value": "yes"
+       }
+      ]
+     },
+     {
+      "label": "Files",
+      "source": "files"
+     }
+    ]
+   },
+   {
+    "layout": "table",
+    "title": "Actions table",
+    "source": "actions",
+    "fields": [
+     "text",
+     "owner",
+     "due",
+     "status"
+    ],
+    "sort": {
+     "field": "due",
+     "direction": "asc"
+    },
+    "limit": 10,
+    "note": "A note with <img src=x onerror=\"window.__pwn=1\"> in it."
+   },
+   {
+    "layout": "grouped",
+    "title": "Actions by owner",
+    "source": "actions",
+    "group": "owner",
+    "fields": [
+     "text",
+     "due"
+    ]
+   },
+   {
+    "layout": "bars",
+    "title": "Actions by owner (chart)",
+    "source": "actions",
+    "group": "owner"
+   },
+   {
+    "layout": "timeline",
+    "title": "Notes over time",
+    "source": "files",
+    "group": "modified",
+    "fields": [
+     "name",
+     "kind"
+    ]
+   },
+   {
+    "layout": "due",
+    "title": "Next two weeks",
+    "source": "actions"
+   },
+   {
+    "layout": "text",
+    "title": "In words",
+    "note": "First paragraph with <script>window.__pwn=1</script> markup.\n\nSecond paragraph."
+   },
+   {
+    "layout": "meetings",
+    "title": "Recent meetings",
+    "source": "meetings"
+   },
+   {
+    "layout": "table",
+    "title": "Files",
+    "source": "files",
+    "fields": [
+     "name",
+     "folder",
+     "kind",
+     "modified"
+    ]
+   },
+   {
+    "layout": "table",
+    "title": "Claude Code set-up",
+    "source": "claudesetup",
+    "fields": [
+     "folder",
+     "claudeMd",
+     "agents",
+     "tools",
+     "git",
+     "lastSession"
+    ]
+   }
+  ]
+ },
+ "evil": "<img src=x onerror=\"window.__pwn=1\"> <script>window.__pwn=1</script>"
+}

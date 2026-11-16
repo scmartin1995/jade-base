@@ -1,0 +1,24 @@
+{
+  "file": "zoom_2026-11-09_brightside-kickoff.vtt",
+  "date": "2026-11-09",
+  "keyPoints": [
+    { "text": "The new site must be live by 12 January, ahead of the open day on 18 January.", "quote": "We need it live by the 12th, so the receptionists can practise." },
+    { "text": "The budget is fixed at 18,000 pounds with nothing on top.", "quote": "Budget is the fixed eighteen thousand pounds we agreed in the proposal, nothing on top." }
+  ],
+  "actions": [
+    { "text": "Send three homepage concepts to Linda", "owner": "Raj", "due": "in two weeks", "isoDue": "2026-11-23", "quote": "I'll have three homepage concepts to you in two weeks." },
+    { "text": "Ask Marianne to organise a photo day", "owner": "Linda", "due": "", "isoDue": null, "quote": "I'll ask Marianne to organise a photo day, she looks after the rota." },
+    { "text": "Send the contract addendum", "owner": "Sam", "due": "today", "isoDue": "2026-11-09", "quote": "I'll send over the contract addendum today." }
+  ],
+  "risks": [
+    { "kind": "issue", "text": "Nobody knows who has the domain login.", "raisedBy": "Linda", "quote": "nobody knows who has the login for the domain." },
+    { "kind": "risk", "text": "The booking plugin may not work on the new platform.", "raisedBy": "Raj", "quote": "It's a fifteen year old plugin and the new platform may not support it." },
+    { "kind": "risk", "text": "The 12 January launch needs the content by mid December, and it is not in hand yet.", "raisedBy": "Raj", "quote": "That's tight but fine if we have content by mid December." }
+  ],
+  "traps": [
+    { "what": "Aiko offered to write all treatment pages then backed out.", "quote": "I can write all the treatment pages, there are about thirty. Hmm, no, I can't do thirty by December on my own." },
+    { "what": "Aiko's request to Linda's team was not accepted ('We'll see'). Not an action for Linda.", "quote": "We'll see. Everyone is flat out until the new year." },
+    { "what": "Colours were raised and deferred, no decision.", "quote": "We can talk about that when you see the concepts." },
+    { "what": "The 8th was a mishearing; the open day is the 18th.", "quote": "did you say the open day is the 18th or the 8th?" }
+  ]
+}

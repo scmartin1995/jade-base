@@ -1,0 +1,21 @@
+{
+  "type": "object",
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string", "description": "The task, starting with a verb" },
+          "owner": { "type": "string", "description": "Who will do it, as named in the transcript; empty if not said" },
+          "due": { "type": "string", "description": "Deadline in the words used; empty if not said. No dates here" },
+          "due_date": { "type": "string", "description": "YYYY-MM-DD only when it follows from the words and the meeting date; otherwise empty" },
+          "quote": { "type": "string", "description": "Exact words from the transcript" }
+        },
+        "required": ["text", "owner", "due", "due_date", "quote"]
+      }
+    }
+  },
+  "required": ["items"],
+  "x-jade": { "heading": "Action items", "quoteField": "quote", "saveTo": "actions", "map": { "text": "text", "owner": "owner", "due": "due_date", "dueWords": "due" }, "show": ["text", "owner", "due", "due_date"], "longText": ["text"] }
+}

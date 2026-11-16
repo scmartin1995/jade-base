@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Name=Jade
+Comment=Jade
+Exec=jade
+Terminal=false
+Type=Application
+Icon=jade
+StartupNotify=true

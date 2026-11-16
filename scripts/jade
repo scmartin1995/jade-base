@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# Jade launcher: starts the server if it isn't running, then opens the app window.
+#   jade            start (if needed) and open the window
+#   jade --serve    start the server only (used by the login service); the key is not shown, run `jade` to open it
+#   jade --stop     stop the server
+# The code is found from $JADE_APP, else the folder this script was installed from, else the folder above this script.
+set -u
+PORT="${JADE_PORT:-4778}"
+URL="http://127.0.0.1:$PORT"
+APP_DEFAULT=""
+for d in "${JADE_APP:-}" "$APP_DEFAULT" "$(dirname "$(readlink -f "$0")")/.."; do
+  if [[ -n "$d" && -f "$d/jade.js" ]]; then APP="$d"; break; fi
+done
+if [[ -z "${APP:-}" ]]; then echo "Jade's code was not found: set JADE_APP to its folder, or run scripts/install-launcher.sh" >&2; exit 1; fi
+LOG="${XDG_STATE_HOME:-$HOME/.local/state}/jade"; mkdir -p "$LOG"
+
+running() { curl -sf -m 1 -o /dev/null "$URL/api/engines"; }
+
+case "${1:-}" in
+  --stop)
+    # Only this Jade: the launcher writes its pid into its own data folder, so another Jade on the same machine is left alone.
+    PIDF="${JADE_HOME:-$HOME/JadeBase}/.state/jade.pid"
+    # a pid left in the file by a crash may belong to another program now: only a process that looks like Jade's launcher is stopped
+    PID="$(cat "$PIDF" 2>/dev/null)"
+    ISJADE=""
+    if [[ "$PID" =~ ^[0-9]+$ ]] && kill -0 "$PID" 2>/dev/null; then
+      CMD="$(tr '\0' ' ' < "/proc/$PID/cmdline" 2>/dev/null || ps -o command= -p "$PID" 2>/dev/null)"
+      [[ "$CMD" == *[Jj]ade* ]] && ISJADE=1
+    fi
+    if [[ -n "$ISJADE" ]]; then kill "$PID"; rm -f "$PIDF"; echo "Jade stopped"
+    else
+      rm -f "$PIDF"   # the file points at nothing of Jade's (a crash left it): remove it, and leave that other program alone
+      echo "Jade is not running (no launcher found for $PORT)"; fi
+    exit 0 ;;
+  --serve)
+    running && { echo "Jade is already running at $URL"; exit 0; }
+    cd "$APP" && exec node jade.js --no-open ;;
+esac
+
+if ! running; then
+  cd "$APP" && nohup node jade.js --no-open >> "$LOG/jade.log" 2>&1 &
+  for _ in $(seq 1 40); do running && break; sleep 0.25; done
+fi
+# The start link carries the key (read from the owner-only key file Jade made). It goes into a small owner-only file that the window opens,
+# never onto a command line, where other users on this computer could read it, and never into a log.
+STATE="${JADE_HOME:-$HOME/JadeBase}/.state"
+KEY="${JADE_TOKEN:-}"
+[[ -z "$KEY" ]] && KEY="$(tr -d '[:space:]' < "$STATE/token" 2>/dev/null)"
+if [[ -z "$KEY" ]]; then echo "Jade is not running yet, or its key file ($STATE/token) cannot be read." >&2; exit 1; fi
+mkdir -p "$STATE"; OPEN="$STATE/open.html"
+( umask 077; printf '<!doctype html><meta charset="utf-8"><meta name="referrer" content="no-referrer"><title>Opening Jade</title><meta http-equiv="refresh" content="0;url=%s/?key=%s"><script>location.replace("%s/?key=%s")</script>' "$URL" "$KEY" "$URL" "$KEY" > "$OPEN" )
+chmod 600 "$OPEN" 2>/dev/null
+# a file address: a space, # or ? in the home folder's path must be written as %XX or the window opens the wrong place
+urlenc() { local LC_ALL=C s="$1" out="" c i; for ((i = 0; i < ${#s}; i++)); do c="${s:i:1}"; case "$c" in [a-zA-Z0-9/._~-]) out+="$c" ;; *) out+="$(printf '%%%02X' "'$c")" ;; esac; done; printf '%s' "$out"; }
+FILE_URL="file://$(urlenc "$OPEN")"
+if command -v chromium >/dev/null; then exec chromium --app="$FILE_URL" --class=Jade
+elif command -v google-chrome-stable >/dev/null; then exec google-chrome-stable --app="$FILE_URL" --class=Jade
+else exec xdg-open "$FILE_URL"; fi

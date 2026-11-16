@@ -1,0 +1,18 @@
+{
+  "name": "jade-base",
+  "version": "0.1.0",
+  "description": "Jade Base: a local-first, zero-dependency assistant for project managers, built on Claude Code.",
+  "type": "module",
+  "bin": { "jade": "jade.js" },
+  "scripts": {
+    "start": "node jade.js",
+    "dev": "node jade.js --no-open",
+    "test": "node --test --import ./test/setup.js test/",
+    "test:one": "node --test --import ./test/setup.js",
+    "bench": "node scripts/bench/bench.mjs",
+    "gates": "node scripts/gates/imports.mjs && node scripts/gates/boot-smoke.mjs && node scripts/gates/pages.mjs && node scripts/gates/sample-module.mjs && node scripts/gates/hygiene.mjs && node scripts/gates/docs.mjs"
+  },
+  "engines": { "node": ">=20" },
+  "author": "The Jade Base authors",
+  "license": "MIT"
+}

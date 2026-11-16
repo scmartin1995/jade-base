@@ -1,0 +1,11 @@
+{
+  "_about": "The kinds of idea Dreams may bring, in the order the page shows them. Code holds each idea to this and nothing else: a known kind, the fields a kind needs, a real web address where one is needed, and no repeat of an earlier idea. What each kind means is written in agents/dreams.md and agents/dreams/outward.md. needs: evidence (the days and what happened), sources (real http/https addresses), draft (the fields listed in draft). outward: only offered when looking outward (Settings, Dreams) is on. max: most ideas of this kind in one night.",
+  "kinds": [
+    { "id": "frontier", "title": "From outside", "icon": "spark", "outward": true, "needs": ["sources"], "draft": [], "max": 4, "accept": "Add to my actions" },
+    { "id": "tool", "title": "Tools to try", "icon": "bolt", "outward": true, "needs": ["sources"], "draft": [], "max": 4, "accept": "Add to my actions" },
+    { "id": "agent", "title": "Agents worth building", "icon": "cpu", "outward": false, "needs": ["evidence", "draft"], "draft": ["name", "description", "prompt"], "max": 4, "accept": "Create this agent" },
+    { "id": "skill", "title": "Skills worth having", "icon": "bolt", "outward": false, "needs": ["evidence", "draft"], "draft": ["name", "description", "body"], "max": 3, "accept": "Create this skill" },
+    { "id": "doc", "title": "Worth writing down", "icon": "doc", "outward": false, "needs": ["evidence", "draft"], "draft": ["title", "body"], "max": 4, "accept": "Save as a note" },
+    { "id": "memory", "title": "Worth remembering", "icon": "brain", "outward": false, "needs": ["evidence", "draft"], "draft": ["fact"], "max": 4, "accept": "Remember this" }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "type": "object",
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string", "description": "One plain sentence: what was decided or stated" },
+          "quote": { "type": "string", "description": "Exact words from the transcript" }
+        },
+        "required": ["text", "quote"]
+      }
+    }
+  },
+  "required": ["items"],
+  "x-jade": { "heading": "Key points", "quoteField": "quote", "saveTo": "record", "show": ["text"], "longText": ["text"] }
+}

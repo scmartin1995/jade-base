@@ -1,0 +1,24 @@
+#!/usr/bin/env node
+// Stand-in for the `claude` command, for measuring only. `auth status` and `mcp list` answer at once; a chat turn streams
+// STANDIN_CHUNKS text pieces STANDIN_GAP_MS apart (first piece after STANDIN_FIRST_MS), then a result line.
+// Every start is appended to $STANDIN_LOG as one JSON line (time and first arguments only).
+import fs from 'node:fs';
+const a = process.argv.slice(2);
+if (process.env.STANDIN_LOG) { try { fs.appendFileSync(process.env.STANDIN_LOG, JSON.stringify({ t: Date.now(), args: a.slice(0, 3) }) + '\n'); } catch {} }
+const num = (k, d) => Number(process.env[k] ?? d);
+const FIRST = num('STANDIN_FIRST_MS', 0), GAP = num('STANDIN_GAP_MS', 5), CHUNKS = num('STANDIN_CHUNKS', 8);
+if (a[0] === 'auth') { console.log('{"loggedIn":true}'); process.exit(0); }
+if (a[0] === 'mcp') process.exit(0);
+if (a.includes('--version')) { console.log('0.0.0-standin'); process.exit(0); }
+const out = s => process.stdout.write(JSON.stringify(s) + '\n');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function reply() {
+  out({ type: 'system', subtype: 'init', model: 'stand-in' });
+  await sleep(FIRST);
+  for (let i = 0; i < CHUNKS; i++) { out({ type: 'stream_event', event: { type: 'content_block_delta', delta: { type: 'text_delta', text: `word${i} ` } } }); await sleep(GAP); }
+  out({ type: 'result', subtype: 'success', is_error: false, result: Array.from({ length: CHUNKS }, (_, i) => `word${i} `).join('') });
+}
+if (a.includes('--input-format')) {
+  let buf = '', chain = Promise.resolve();
+  process.stdin.on('data', c => { buf += c; let n; while ((n = buf.indexOf('\n')) >= 0) { const l = buf.slice(0, n).trim(); buf = buf.slice(n + 1); if (l) chain = chain.then(reply); } });
+} else { process.stdin.resume(); process.stdin.on('end', () => reply().then(() => process.exit(0))); }
