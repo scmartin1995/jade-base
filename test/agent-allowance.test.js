@@ -30,7 +30,7 @@ const jobs = await import('../server/core/jobs.js');
 const bridge = await import('../server/core/bridge.js');
 const engines = await import('../server/core/engines.js');
 config.load(); store.init();
-after(() => fs.rmSync(tmp, { recursive: true, force: true }));
+after(() => fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }));
 
 const put = (f, t) => { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, t); return f; };
 const proj = path.join(tmp, 'site');
@@ -81,7 +81,9 @@ test('allowing one agent is kept by its file, honours its keys and skills, and c
   assert.ok(scheduler.tasks().some(t => t.id === a.id), 'now it is scheduled');
   const r = bridge.run({ id: a.id });
   assert.ok(r.jobId, 'and a Claude session can start it');
-  await new Promise(res => setTimeout(res, 400));
+  // let that run end (its stand-in `claude` works in the data folder; on Windows it is a .cmd shim that takes longer, and a program still running keeps the folder and this process alive)
+  for (let i = 0; i < 300 && !['done', 'error', 'cancelled'].includes(jobs.get(r.jobId)?.status); i++) await new Promise(res => setTimeout(res, 100));
+  assert.ok(['done', 'error', 'cancelled'].includes(jobs.get(r.jobId)?.status), 'the run ended');
   // another file of the same folder is not allowed by this
   assert.equal(agentfiles.isAllowed(PFILE), false);
   const plugin = agents.list().find(x => x.file === PFILE);
