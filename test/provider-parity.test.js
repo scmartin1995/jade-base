@@ -14,6 +14,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { canonical, foldEnv } from '../scripts/parity-normalise.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jade-parity-test-'));
@@ -46,24 +47,19 @@ const frozen = f => JSON.parse(fs.readFileSync(path.join(ROOT, 'test/fixtures', 
 // A run (or scenario) points at the text of each file the engine was handed by a hash; compare the text, so a failure shows the words that changed.
 const withText = (rec, contents) => (rec.files ? { ...rec, files: Object.fromEntries(Object.entries(rec.files).map(([n, h]) => [n, contents[h]])) } : rec);
 
-// Windows environment names ignore case, and cmd.exe adds PROMPT when it starts a .cmd shim: on win32 only, compare the whole
-// environment with names folded to upper case (a lower-case and an upper-case copy of one name are one variable) and without PROMPT.
-const foldEnv = env => {
-  if (process.platform !== 'win32') return env;
-  const out = {};
-  for (const [k, v] of Object.entries(env)) if (k.toUpperCase() !== 'PROMPT') out[k.toUpperCase()] = v;
-  return out;
-};
+// On Windows environment names ignore case and cmd.exe adds PROMPT: `canonical` (scripts/parity-normalise.mjs) folds every env on both sides
+// of every comparison below. Folders are made into tokens by the harness with the same module.
+const same = (now, want, msg) => assert.deepEqual(canonical(now), canonical(want), msg);
 
 function compare(now, want) {
   assert.deepEqual(Object.keys(now.envs), Object.keys(want.envs), 'same set-ups');
-  for (const k of Object.keys(want.envs)) assert.deepEqual(now.envs[k], want.envs[k], `env for ${k}`);
+  for (const k of Object.keys(want.envs)) same(foldEnv(now.envs[k]), foldEnv(want.envs[k]), `env for ${k}`);
   assert.deepEqual(Object.keys(now.fullEnvs), Object.keys(want.fullEnvs), 'same set-ups (whole environment)');
-  for (const k of Object.keys(want.fullEnvs)) assert.deepEqual(foldEnv(now.fullEnvs[k]), foldEnv(want.fullEnvs[k]), `whole environment for ${k}`);
+  for (const k of Object.keys(want.fullEnvs)) same(foldEnv(now.fullEnvs[k]), foldEnv(want.fullEnvs[k]), `whole environment for ${k}`);
   assert.deepEqual(Object.keys(now.extras), Object.keys(want.extras), 'same extra scenarios');
-  for (const k of Object.keys(want.extras)) assert.deepEqual(withText(now.extras[k], now.contents), withText(want.extras[k], want.contents), k);
+  for (const k of Object.keys(want.extras)) same(withText(now.extras[k], now.contents), withText(want.extras[k], want.contents), k);
   assert.deepEqual(Object.keys(now.runs), Object.keys(want.runs), 'same runs');
-  for (const k of Object.keys(want.runs)) assert.deepEqual(withText(now.runs[k], now.contents), withText(want.runs[k], want.contents), k);
+  for (const k of Object.keys(want.runs)) same(withText(now.runs[k], now.contents), withText(want.runs[k], want.contents), k);
 }
 
 // A warm chat worker is started with the stream arguments added; apart from those it must be exactly what a cold start builds.
@@ -80,7 +76,7 @@ function warmMatchesCold(runs) {
     assert.ok(runs[k].argv.includes(STREAM[0]), `${k}: a warm worker streams its input`);
     // the same settings and system prompt text (the MCP config differs only in saying which thread or job asked)
     for (const f of ['settings', 'system']) assert.equal(runs[k].files?.[f], cold.files?.[f], `${k}: ${f} file differs`);
-    assert.deepEqual(runs[k].env, cold.env, `${k}: environment differs`);
+    assert.deepEqual(canonical(runs[k].env, undefined, 'env'), canonical(cold.env, undefined, 'env'), `${k}: environment differs`);
     n++;
   }
   assert.ok(n > 0);
@@ -95,17 +91,17 @@ test('gateway and Bedrock: argv, env and model mapping are exactly what the orig
 
   // proxy and certificate variables of the parent reach the engine in every set-up
   for (const [k, env] of Object.entries(now.fullEnvs)) {
-    for (const v of ['HTTPS_PROXY', 'HTTP_PROXY', 'NO_PROXY', 'SSL_CERT_FILE']) assert.ok(env[v], `${v} is passed to the engine (${k})`);
+    for (const v of ['HTTPS_PROXY', 'HTTP_PROXY', 'NO_PROXY', 'SSL_CERT_FILE']) assert.ok(foldEnv(env)[v], `${v} is passed to the engine (${k})`);
   }
   // a parent that already holds provider variables never redirects a run: only Jade's own choice applies
-  const ambient = now.extras['ambient | bedrockGateway | agent'].fullEnv;
+  const ambient = foldEnv(now.extras['ambient | bedrockGateway | agent'].fullEnv);
   assert.equal(ambient.AWS_BEARER_TOKEN_BEDROCK, 'bk-test');
   assert.equal(ambient.AWS_REGION, 'us-east-1');
   assert.equal(ambient.CLAUDE_CODE_USE_BEDROCK, '1');
   assert.equal(ambient.ANTHROPIC_BEDROCK_BASE_URL, '<GATEWAY>');
   for (const v of ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN', 'ANTHROPIC_BASE_URL', 'ANTHROPIC_MODEL', 'NODE_EXTRA_CA_CERTS', 'CLAUDECODE', 'CLAUDE_CODE_ENTRYPOINT', 'JADE_TOKEN'])
     assert.equal(ambient[v], undefined, `${v} from the parent does not reach the engine`);
-  for (const [name, run] of Object.entries(now.extras)) if (name.startsWith('ambient |') && run.fullEnv) assert.equal(run.fullEnv.JADE_TOKEN, undefined, `${name}: the server key is never given to a run`);
+  for (const [name, run] of Object.entries(now.extras)) if (name.startsWith('ambient |') && run.fullEnv) assert.equal(foldEnv(run.fullEnv).JADE_TOKEN, undefined, `${name}: the server key is never given to a run`);
 
   // the Bedrock-with-a-key connection check asks the real Amazon address in the documented shape (here answered by a stand-in)
   const check = now.runs['bedrockKey | none | empty | check | ""'];

@@ -15,6 +15,7 @@ import path from 'node:path';
 import http from 'node:http';
 import crypto from 'node:crypto';
 import { pathToFileURL } from 'node:url';
+import { makeNormaliser, variants } from './parity-normalise.mjs';
 import { writeStub } from '../test/helpers/stub.js';
 
 const [root, out] = process.argv.slice(2).filter(a => !a.startsWith('--')).map(p => path.resolve(p));
@@ -98,11 +99,10 @@ const CACHES = { empty: null, discovered: { at: 'x', current: 'sonnet', aliases:
 const CHOICES = ['', 'sonnet', 'haiku', 'opus', 'default', 'fable', 'opus[1m]', 'us.anthropic.claude-sonnet-4-5-20250929-v1:0'];
 
 // ids and paths that differ from run to run
-// A folder in its three spellings (as is, with / and as written inside a JSON string) so a Windows path becomes the same token as a Linux one;
-// the rest of such a path then gets / for \\ so '<JADE_HOME>\\.state\\run' reads '<JADE_HOME>/.state/run'. Nothing changes on Linux and macOS.
-const spell = p => [...new Set([p, p.split('\\').join('/'), JSON.stringify(p).slice(1, -1)])];
-const swap = (str, base, token) => spell(base).reduce((t, v) => t.split(v).join(token), str);
-const norm = s => String(WIN ? swap(swap(swap(swap(String(s), config.JADE_HOME, '<JADE_HOME>'), tmp, '<TMP>'), root, '<APP>'), process.execPath, '<NODE>').replace(/(<(?:JADE_HOME|TMP|APP)>)((?:\\\\|\\|\/)[\w .~@-]+)+/g, m => m.replace(/\\\\|\\/g, '/')) : s).split(config.JADE_HOME).join('<JADE_HOME>').split(tmp).join('<TMP>').split(root).join('<APP>').split(process.execPath).join('<NODE>').replace(/"JADE_PORT":"\d+"/, '"JADE_PORT":"<PORT>"').replace(URL_, '<GATEWAY>')
+// Folders become tokens through scripts/parity-normalise.mjs (all Windows spellings, long and short names); nothing changes on Linux and macOS.
+const normText = makeNormaliser([{ paths: variants(config.JADE_HOME), token: '<JADE_HOME>' }, { paths: variants(tmp), token: '<TMP>' }, { paths: variants(root), token: '<APP>' }, { paths: variants(process.execPath), token: '<NODE>' },
+  ...(WIN ? [{ paths: [...variants(os.tmpdir()), ...variants(process.env.JADE_CLAUDE_HOME || os.tmpdir())], token: '<TMP>' }] : [])]);
+const norm = s => normText(s).replace(/"JADE_PORT":"\d+"/, '"JADE_PORT":"<PORT>"').replace(URL_, '<GATEWAY>')
   .replace(/(system|judge)-[A-Za-z0-9_-]+\.md/g, '$1-ID.md').replace(/(permission[\w-]*?)-[A-Za-z0-9_-]{6,}\.json/g, '$1-ID.json').replace(/(mcp-jade-[\w-]*?)-s[0-9a-f]{8}\.json/g, '$1.json');
 const recorded = () => {
   const f = path.join(dump, 'run.json'); if (!fs.existsSync(f)) return null;
