@@ -90,6 +90,10 @@ test('invalidate(path) marks only the folder the path is in; a new folder marks 
   const real = fs.readdirSync; let read = new Set();
   fs.readdirSync = (...x) => { if (String(x[0]).startsWith(proj)) read.add(String(x[0])); return real(...x); };
   try {
+    // Where the watch is put in place after the first read (everywhere but Linux's one-by-one watches), the map looks once more at what
+    // changed meanwhile, and on Windows that look reads every folder. Let it settle first: ask until a round reads nothing.
+    for (let i = 0; i < 20; i++) { read = new Set(); await new Promise(r => setTimeout(r, 100)); await files.list(); if (!read.size) break; }
+    read = new Set();
     const f = path.join(proj, 'a2', 'b2', 'record.md'); fs.writeFileSync(f, 'x');
     files.invalidate(f);
     assert.ok((await files.list()).some(x => x.path === f));
