@@ -139,8 +139,10 @@ export default {
       patch({ items: [{ add: { skill: x.skill, text: x.text, fields: {}, quote: x.quote || '' } }] });
     });
     root.querySelector('[data-record]').onclick = async e => {
+      const kept = m.skills.some(s => s.items.some(i => i.accepted === true));
+      if (!kept && !await ui.confirmBox('Nothing is ticked', 'Nothing is ticked. Record this meeting with nothing kept?', 'Record with nothing kept')) return;
       e.target.closest('button').disabled = true;
-      try { await api('POST', `/api/meetings/${encodeURIComponent(id)}/record`); ui.toast('Meeting record written.', 'info', 2400); }
+      try { await api('POST', `/api/meetings/${encodeURIComponent(id)}/record`, kept ? undefined : { empty: true }); ui.toast('Meeting record written.', 'info', 2400); }
       catch (err) { ui.toast(err.message, 'error'); e.target.closest('button').disabled = false; }
     };
   },

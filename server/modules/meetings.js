@@ -34,7 +34,7 @@ export default {
     on('GET', '/api/meetings', ({ q }) => meetings.list(q.get('project') || '').map(meetings.summary));
     on('GET', '/api/meetings/:id', ({ p }) => { const m = meetings.get(p.id); if (!m) throw Object.assign(new Error('That meeting is not there any more.'), { status: 404 }); return m; });
     on('PATCH', '/api/meetings/:id', ({ p, body }) => meetings.patch(p.id, body || {}));
-    on('POST', '/api/meetings/:id/record', ({ p }) => meetings.writeRecord(p.id));
+    on('POST', '/api/meetings/:id/record', ({ p, body }) => meetings.writeRecord(p.id, { empty: body?.empty === true }));
     on('POST', '/api/meetings/:id/rerun', ({ p }) => meetings.rerun(p.id));
     on('DELETE', '/api/meetings/:id', ({ p }) => meetings.remove(p.id));
 

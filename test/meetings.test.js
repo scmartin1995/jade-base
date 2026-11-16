@@ -525,3 +525,36 @@ test('round trip: what writeRecord writes is what the dashboards read back (one 
   assert.deepEqual([back.date, back.title], ['2026-01-02', 'T']);
   assert.equal(record.parse('## H\n\n- x\n', '/p/2026-03-04 Name here.md').title, 'Name here', 'file name fallback');
 });
+
+test('recording with nothing kept is refused, unless the person says so; a normal record is unchanged', async () => {
+  reset();
+  const m = meetings.get(await drop());
+  assert.ok(all(m).every(i => i.accepted == null));
+  assert.throws(() => meetings.writeRecord(m.id), e => e.status === 400 && /Nothing is ticked/.test(e.message));
+  assert.throws(() => meetings.writeRecord(m.id, { empty: false }), e => e.status === 400);
+  assert.equal(meetings.get(m.id).status, 'review', 'the meeting stays in review');
+  assert.ok(!meetings.get(m.id).recordPath, 'nothing was written');
+  // leaving every item out is the same as ticking nothing
+  meetings.patch(m.id, { items: all(m).map(i => ({ id: i.id, accepted: false })) });
+  assert.throws(() => meetings.writeRecord(m.id), e => e.status === 400);
+  // the explicit empty record
+  const r = meetings.writeRecord(m.id, { empty: true });
+  assert.match(fs.readFileSync(r.recordPath, 'utf8'), /_Nothing was kept here\._/);
+  assert.equal(meetings.get(m.id).status, 'recorded');
+  // a normal record with one item kept needs no flag
+  const m2 = meetings.get(await drop());
+  accept(m2, [all(m2)[0].id]);
+  assert.match(fs.readFileSync(meetings.writeRecord(m2.id).recordPath, 'utf8'), /- The vendor is a risk/);
+});
+
+test('a dashboard cell shows the words of a record item, not its Markdown markers, and never turns text into markup', async () => {
+  const dir = path.join(folder, 'Jade', 'Meetings');
+  fs.mkdirSync(dir, { recursive: true });
+  const rec = path.join(dir, '2026-11-20 Markers.md');
+  fs.writeFileSync(rec, `---\ndate: 2026-11-20\nproject: Helios\ntitle: Markers\n---\n## Risks and issues\n\n- **Risk:** The supplier may be _late_ with \`part-9\` <script>alert(1)</script> (impact: high; owner: Dana)\n  > the supplier\n- **Issue:** snake_case_name and 2*3*4 stay as written\n  > x\n`);
+  const dashboards = await import('../server/core/dashboards.js');
+  const row = dashboards.collect(project).sources.meetings.find(x => x._path === rec);
+  assert.equal(row._lists.risks[0], 'Risk: The supplier may be late with part-9 <script>alert(1)</script> (impact: high; owner: Dana)');
+  assert.equal(row._lists.risks[1], 'Issue: snake_case_name and 2*3*4 stay as written');
+  assert.ok(!/\*\*|`/.test(row._lists.risks.join('')));
+});

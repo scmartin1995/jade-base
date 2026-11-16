@@ -172,6 +172,7 @@ async function start(j) {
       j.engine = 'claude';
       const log = take;
       j.result = await LOOPS.get(def.loop)({ input: j.input || {}, signal: ac.signal, log });
+      j.model = (typeof j.result?.model === 'string' && j.result.model) || j.model;   // a loop reports the model that really answered, as a chat does
       flush(true);
       j.status = 'done';
       // a scheduled run that found nothing new leaves the run list after a minute, so a 15-minute schedule does not push out

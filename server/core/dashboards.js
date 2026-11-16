@@ -153,13 +153,16 @@ export function questionsFor(projectId, list = null) {
 }
 
 // ------------------------------------------------------------------ the data a dashboard draws from
+/** A record's item as plain words for a dashboard cell: the Markdown markers (**bold**, _italic_, `code`) are dropped and the words stay ("**Risk:** late" -> "Risk: late"). Drawing still escapes everything. */
+export const plainItem = x => String(x ?? '').replace(/`+([^`]*)`+/g, '$1').replace(/(\*\*|__)(?=\S)(.+?)(?<=\S)\1/g, '$2')
+  .replace(/(^|[^\w*])([*_])(?=\S)(.+?)(?<=\S)\2(?![\w*])/g, '$1$3').replace(/\s+/g, ' ').trim();
 const countOf = (m, re) => Object.entries(m.sections).filter(([h]) => re.test(h)).reduce((n, [, items]) => n + items.length, 0);
-const listOf = (m, re) => Object.entries(m.sections).filter(([h]) => re.test(h)).flatMap(([, items]) => items);
+const listOf = (m, re) => Object.entries(m.sections).filter(([h]) => re.test(h)).flatMap(([, items]) => items).map(plainItem);
 const DECISIONS = /key point|decision/i, RISKS = /risk|issue/i, ACTIONS = /action/i;
 // Any other heading in a record (a new Transcript skill's) is not lost: each comes with its items, to be drawn beside the three above.
 const OTHER_HEADINGS = 6, OTHER_ITEMS = 12;
 const otherOf = m => Object.entries(m.sections).filter(([h]) => ![DECISIONS, RISKS, ACTIONS].some(re => re.test(h))).slice(0, OTHER_HEADINGS)
-  .map(([heading, items]) => ({ heading: cut(heading, 80), total: items.length, items: items.slice(0, OTHER_ITEMS).map(x => cut(x, 300)) }));
+  .map(([heading, items]) => ({ heading: cut(heading, 80), total: items.length, items: items.slice(0, OTHER_ITEMS).map(x => cut(plainItem(x), 300)) }));
 
 /**
  * Every source, as rows, as it is right now. No model. Fields starting with "_" are for Jade's own drawing code (links, the
@@ -302,7 +305,7 @@ export function buildPrompt(p, d, data, { change = '', current = null, list = nu
 }
 
 /**
- * Ask the model for a specification and check it; one retry with the problems named. Returns the checked specification.
+ * Ask the model for a specification and check it; one retry with the problems named. Returns { spec, model }: the checked specification and the model that answered.
  */
 async function ask(p, d, { signal, log, change = '', current = null }) {
   const system = agents.get('dashboard-builder')?.body || '';
@@ -312,16 +315,17 @@ async function ask(p, d, { signal, log, change = '', current = null }) {
   // the dashboards model if one is set, otherwise the one the PM chose for the automated agents (blank: the model Jade would pick anyway)
   const model = config.get().dashboards?.model || config.get().agents?.model || '';
   log(change ? 'Asking for the change…\n' : 'Looking at the project and choosing what to show…\n');
-  let problems = [], result = null;
+  let problems = [], result = null, used = '';
   for (let tries = 0; tries < 2; tries++) {
     const res = await judge.judge({ system, prompt: problems.length ? `${prompt}\n\n# Fix these problems from your last answer, and answer again in full\n- ${problems.join('\n- ')}` : prompt, schema: spec.jsonSchema(), model, effort: effort.forAgent('dashboard-builder'), label: 'Dashboard Builder', signal });
+    used = res?.model || used;
     const r = spec.validateSpec(res?.data, { sources: usableSources(p.id) });
     problems = r.problems; result = r.spec;
     if (!problems.length) break;
     log(`The answer was not accepted: ${problems.slice(0, 3).join(' ')}\n`);
   }
   if (problems.length) throw new Error('The dashboard could not be made: ' + problems.slice(0, 3).join(' '));
-  return result;
+  return { spec: result, model: used };
 }
 
 /** Build (or rebuild in the new style) one dashboard from its answers. A new one is created as a new file; an existing one is replaced in place. */
@@ -329,7 +333,7 @@ export async function build(projectId, did, { signal, log = () => {} } = {}) {
   const p = need(projectId);
   const d = (p.dashboards || []).find(x => x.id === did);
   if (!d) throw new Error('This dashboard is not there any more, so it cannot be built.');
-  const made = await ask(p, d, { signal, log });
+  const { spec: made, model } = await ask(p, d, { signal, log });
   const fresh = store.getProject(p.id);
   if (!(fresh?.dashboards || []).some(x => x.id === d.id)) throw bad(404, 'This dashboard was removed while it was being built, so nothing was saved.');
   const own = specFile(fresh, d);
@@ -337,7 +341,7 @@ export async function build(projectId, did, { signal, log = () => {} } = {}) {
   const now = new Date().toISOString();
   saveList(fresh, (fresh.dashboards || []).map(x => (x.id === d.id ? { ...x, path: short(file), builtAt: now, dataAt: now } : x)));
   log(`Saved ${file}\n`);
-  return { path: short(file), dashboard: d.id };
+  return { path: short(file), dashboard: d.id, model };
 }
 
 /** "Change it": the model gets the dashboard as it is and the change in the PM's words, and returns the revised specification. */
@@ -346,14 +350,14 @@ export async function change(projectId, did, request, { signal, log = () => {} }
   const { dashboard, spec: current } = readSpec(projectId, did);
   const wish = String(request || '').trim().slice(0, 2000);
   if (!wish) throw new Error('Say what you would like changed.');
-  const made = await ask(p, dashboard, { signal, log, change: wish, current });
+  const { spec: made, model } = await ask(p, dashboard, { signal, log, change: wish, current });
   const fresh = store.getProject(p.id);
   // the model took a while: the dashboard may have been removed meanwhile, and its file must not come back
   if (!(fresh?.dashboards || []).some(x => x.id === did)) throw bad(404, 'This dashboard was removed while the change was being made, so nothing was saved.');
   replaceFile(specFile(fresh, dashboard), made);
   const now = new Date().toISOString();
   saveList(fresh, (fresh.dashboards || []).map(x => (x.id === did ? { ...x, builtAt: now } : x)));
-  return { dashboard: did, sections: made.sections.length };
+  return { dashboard: did, sections: made.sections.length, model };
 }
 
 /** Remove a section, or move one to another place, without a model. */

@@ -59,7 +59,7 @@ Find the sentence that sounds like your problem. Each entry says what it means, 
 
 ### No models are listed
 
-**Means.** Jade only offers models it discovers; it found none (and does not guess). On a plan it asks Claude Code for its list; on a gateway or Bedrock it also asks the endpoint.
+**Means.** Jade only offers models it discovers; it found none (and does not guess). Straight after first set-up the list is empty until the connection check has run, and that first check uses the account's default model. On a plan it asks Claude Code for its list; on a gateway or Bedrock it also asks the endpoint.
 **Check.** Settings → Engine shows "No models were found. Run Diagnose". Run **Diagnose**: the line `endpoint listed N model(s)` and the notes tell you whether Claude Code was found and whether the endpoint answered. The result is cached in `<data folder>/.state/models.json` (its `notes` field says why a source gave nothing).
 **Fix.** Make sure Claude Code is installed and logged in (`claude auth login`). On a gateway or Bedrock, check the address and key, then press **Check and save**. Some gateways do not publish a model list; Jade then shows the names Claude Code accepts. Use the refresh button next to the model list (Settings → Engine, or the set-up step) to ask again.
 **Owner.** `server/core/models.js`. Background: `docs/adr/0003-discovered-models-only.md`.
