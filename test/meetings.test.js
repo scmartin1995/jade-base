@@ -546,3 +546,15 @@ test('recording with nothing kept is refused, unless the person says so; a norma
   accept(m2, [all(m2)[0].id]);
   assert.match(fs.readFileSync(meetings.writeRecord(m2.id).recordPath, 'utf8'), /- The vendor is a risk/);
 });
+
+test('a dashboard cell shows the words of a record item, not its Markdown markers, and never turns text into markup', async () => {
+  const dir = path.join(folder, 'Jade', 'Meetings');
+  fs.mkdirSync(dir, { recursive: true });
+  const rec = path.join(dir, '2026-11-20 Markers.md');
+  fs.writeFileSync(rec, `---\ndate: 2026-11-20\nproject: Helios\ntitle: Markers\n---\n## Risks and issues\n\n- **Risk:** The supplier may be _late_ with \`part-9\` <script>alert(1)</script> (impact: high; owner: Dana)\n  > the supplier\n- **Issue:** snake_case_name and 2*3*4 stay as written\n  > x\n`);
+  const dashboards = await import('../server/core/dashboards.js');
+  const row = dashboards.collect(project).sources.meetings.find(x => x._path === rec);
+  assert.equal(row._lists.risks[0], 'Risk: The supplier may be late with part-9 <script>alert(1)</script> (impact: high; owner: Dana)');
+  assert.equal(row._lists.risks[1], 'Issue: snake_case_name and 2*3*4 stay as written');
+  assert.ok(!/\*\*|`/.test(row._lists.risks.join('')));
+});

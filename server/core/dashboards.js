@@ -153,13 +153,16 @@ export function questionsFor(projectId, list = null) {
 }
 
 // ------------------------------------------------------------------ the data a dashboard draws from
+/** A record's item as plain words for a dashboard cell: the Markdown markers (**bold**, _italic_, `code`) are dropped and the words stay ("**Risk:** late" -> "Risk: late"). Drawing still escapes everything. */
+export const plainItem = x => String(x ?? '').replace(/`+([^`]*)`+/g, '$1').replace(/(\*\*|__)(?=\S)(.+?)(?<=\S)\1/g, '$2')
+  .replace(/(^|[^\w*])([*_])(?=\S)(.+?)(?<=\S)\2(?![\w*])/g, '$1$3').replace(/\s+/g, ' ').trim();
 const countOf = (m, re) => Object.entries(m.sections).filter(([h]) => re.test(h)).reduce((n, [, items]) => n + items.length, 0);
-const listOf = (m, re) => Object.entries(m.sections).filter(([h]) => re.test(h)).flatMap(([, items]) => items);
+const listOf = (m, re) => Object.entries(m.sections).filter(([h]) => re.test(h)).flatMap(([, items]) => items).map(plainItem);
 const DECISIONS = /key point|decision/i, RISKS = /risk|issue/i, ACTIONS = /action/i;
 // Any other heading in a record (a new Transcript skill's) is not lost: each comes with its items, to be drawn beside the three above.
 const OTHER_HEADINGS = 6, OTHER_ITEMS = 12;
 const otherOf = m => Object.entries(m.sections).filter(([h]) => ![DECISIONS, RISKS, ACTIONS].some(re => re.test(h))).slice(0, OTHER_HEADINGS)
-  .map(([heading, items]) => ({ heading: cut(heading, 80), total: items.length, items: items.slice(0, OTHER_ITEMS).map(x => cut(x, 300)) }));
+  .map(([heading, items]) => ({ heading: cut(heading, 80), total: items.length, items: items.slice(0, OTHER_ITEMS).map(x => cut(plainItem(x), 300)) }));
 
 /**
  * Every source, as rows, as it is right now. No model. Fields starting with "_" are for Jade's own drawing code (links, the
