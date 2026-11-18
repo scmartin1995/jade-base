@@ -5,6 +5,7 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import http from 'node:http';
 import { spawnSync } from 'node:child_process';
 import { tmpHome } from './helpers/env.js';
 import { startServer, waitFor } from './helpers/server.js';
@@ -130,11 +131,58 @@ test('an update that would overwrite a file git ignores is refused like any othe
   assert.equal(fs.readFileSync(path.join(r.jade, 'secret.txt'), 'utf8'), 'mine\n');
 });
 
+test('an ignored file the update would reach by a rename is refused too', async () => {
+  const r = repos();
+  r.push('big.txt', 'big\n', 'Add a big file');
+  await updates.apply({ root: r.jade });
+  fs.appendFileSync(path.join(r.jade, '.git', 'info', 'exclude'), 'notes.log\n');
+  fs.writeFileSync(path.join(r.jade, 'notes.log'), 'mine\n');
+  git(r.other, 'mv', 'big.txt', 'notes.log'); git(r.other, 'commit', '-q', '-m', 'Rename'); git(r.other, 'push', '-q', 'origin', 'main');
+  const before = r.head();
+  const out = await updates.apply({ root: r.jade });
+  assert.equal(out.ok, false);
+  assert.match(out.reason, /changes of its own/);
+  assert.equal(r.head(), before);
+  assert.equal(fs.readFileSync(path.join(r.jade, 'notes.log'), 'utf8'), 'mine\n');
+});
+
+test('an ignored file where the update puts a folder is refused too', async () => {
+  const r = repos();
+  fs.appendFileSync(path.join(r.jade, '.git', 'info', 'exclude'), 'cache\n');
+  fs.writeFileSync(path.join(r.jade, 'cache'), 'mine\n');
+  fs.mkdirSync(path.join(r.other, 'cache'));
+  r.push(path.join('cache', 'readme.txt'), 'theirs\n', 'Add a cache folder');
+  const before = r.head();
+  const out = await updates.apply({ root: r.jade });
+  assert.equal(out.ok, false);
+  assert.match(out.reason, /changes of its own/);
+  assert.equal(r.head(), before);
+  assert.equal(fs.readFileSync(path.join(r.jade, 'cache'), 'utf8'), 'mine\n');
+});
+
+test('a tracked file that becomes a folder on GitHub still updates', async () => {
+  const r = repos();
+  r.push('docs', 'a file\n', 'Add docs as a file');
+  await updates.apply({ root: r.jade });
+  git(r.other, 'rm', '-q', 'docs'); fs.mkdirSync(path.join(r.other, 'docs'));
+  r.push(path.join('docs', 'readme.txt'), 'now a folder\n', 'Make docs a folder');
+  const out = await updates.apply({ root: r.jade });
+  assert.equal(out.ok, true, out.reason);
+  assert.equal(r.head(), r.remoteHead());
+});
+
+test('a git message is put in plain words: paths hidden, branch names kept', () => {
+  const said = updates.why("fatal: cannot open '/srv/someone/jade/.git/FETCH_HEAD' for origin/main: Permission denied");
+  assert.doesNotMatch(said, /someone/);
+  assert.match(said, /origin\/main/);
+  assert.doesNotMatch(updates.why('error: C:\\Users\\someone\\jade is busy'), /someone/);
+});
+
 test('a branch that is gone from GitHub is told apart from being offline', async () => {
   const r = repos();
   git(r.jade, 'config', 'branch.main.merge', 'refs/heads/no-such-branch');
   assert.equal((await updates.check({ root: r.jade })).state, 'gone');
-  assert.match((await updates.apply({ root: r.jade })).reason, /no longer on GitHub/);
+  assert.match((await updates.apply({ root: r.jade })).reason, /could not be found on GitHub/);
 });
 
 test('git busy in this copy gives a plain reason with no path in it', async () => {
@@ -155,10 +203,13 @@ test('git never asks for a password: no password-asking program is started', asy
   const ask = path.join(t.root, process.platform === 'win32' ? 'askpass.cmd' : 'askpass.sh');
   fs.writeFileSync(ask, process.platform === 'win32' ? `@echo asked>>"${log}"\r\n` : `#!/bin/sh\necho asked >> '${log}'\necho x\n`, { mode: 0o755 });
   git(r.jade, 'config', 'core.askPass', ask);
-  git(r.jade, 'remote', 'set-url', 'origin', 'http://127.0.0.1:9/nowhere.git');   // nothing listens on port 9
+  // a server that asks for a password, as a private GitHub copy would
+  const srv = http.createServer((req, res) => { res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="test"' }); res.end(); });
+  await new Promise(ok => srv.listen(0, '127.0.0.1', ok));
+  git(r.jade, 'remote', 'set-url', 'origin', `http://127.0.0.1:${srv.address().port}/private.git`);
   const old = process.env.GIT_ASKPASS; process.env.GIT_ASKPASS = ask;
   try { assert.equal((await updates.check({ root: r.jade })).state, 'unreachable'); }
-  finally { if (old === undefined) delete process.env.GIT_ASKPASS; else process.env.GIT_ASKPASS = old; }
+  finally { if (old === undefined) delete process.env.GIT_ASKPASS; else process.env.GIT_ASKPASS = old; srv.close(); }
   assert.equal(fs.existsSync(log), false);
 });
 

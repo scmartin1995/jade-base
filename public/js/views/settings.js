@@ -222,7 +222,7 @@ export default {
         'not-git': 'This copy of Jade was not installed with git, so it cannot look for updates. Download new versions from GitHub.',
         'no-upstream': 'This copy of Jade does not follow a branch on GitHub, so there is nothing to compare it with.',
         'no-branch': 'This copy of Jade is not on a branch, so there is nothing to compare it with.',
-        gone: 'The branch this copy of Jade follows is no longer on GitHub.',
+        gone: 'The branch this copy of Jade follows could not be found on GitHub (it may have been deleted).',
         'no-git': 'git is not installed on this computer, so Jade cannot look for updates. Download new versions from GitHub.',
         'not-trusted': 'git will not work in this copy of Jade because the folder belongs to another user account on this computer.',
       }[u.state] || 'Not checked yet.';

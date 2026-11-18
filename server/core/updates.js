@@ -120,23 +120,42 @@ const CANNOT = {
   'not-git': 'This copy of Jade was not installed with git, so it cannot update itself. Download the new version from GitHub instead.',
   'no-branch': 'This copy of Jade is not on a branch, so there is nothing to update from.',
   'no-upstream': 'This copy of Jade does not follow a branch on GitHub, so there is nothing to update from.',
-  gone: 'The branch this copy of Jade follows is no longer on GitHub, so there is nothing to update from.',
+  gone: 'The branch this copy of Jade follows could not be found on GitHub (it may have been deleted), so there is nothing to update from.',
   unreachable: 'GitHub could not be reached. Check the internet connection and try again.',
 };
 const OWN_CHANGES = 'This copy of Jade has changes of its own in files the update also changes, so nothing was changed. Undo or save those changes, then update again.';
 /** What git said, in plain words; never a path or git's own wording beyond its first line, with any secret hidden. */
-function why(err) {
+export function why(err) {
   if (/would be overwritten|commit your changes|stash them|untracked working tree files/i.test(err)) return OWN_CHANGES;
   if (/not possible to fast-forward|diverg|not fast-forward/i.test(err)) return 'This copy of Jade has changes of its own that GitHub does not have, so it cannot be updated by itself. Nothing was changed.';
   if (/index\.lock|another git process/i.test(err)) return 'Another git program is working in this copy of Jade right now. Nothing was changed; try again in a minute.';
-  const line = (err.split('\n')[0] || 'git gave no reason').replace(/(?:[A-Za-z]:)?[\\/][^\s'"]+/g, '…');
+  const line = (err.split('\n')[0] || 'git gave no reason').replace(/(^|[\s'"(])(?:[A-Za-z]:)?[\\/][^\s'"]+/g, '$1…');
   return `The update did not finish (${redact(line).slice(0, 200)}). Nothing was changed.`;
 }
 
-/** Files the update adds that are already here but ignored by git: git would overwrite them without a word, so they stop the update. */
+/**
+ * Files git ignores that the update would overwrite without a word, so they stop it: a file the update adds (renames count as
+ * adds) that is already here, or a file here where the update puts a folder. A tracked file the update removes is git's to handle.
+ */
 async function ignoredInTheWay(dir) {
-  const added = (await git(dir, ['diff', '--name-only', '--diff-filter=A', 'HEAD', '@{u}'])).out.split('\n').filter(Boolean);
-  return added.filter(f => { try { fs.lstatSync(path.join(dir, f)); return true; } catch { return false; } });
+  const d = await git(dir, ['diff', '--name-status', '--no-renames', '-z', 'HEAD', '@{u}']);
+  const parts = d.out.split('\0'), added = [], removed = new Set();
+  for (let i = 0; i + 1 < parts.length; i += 2) {
+    if (parts[i] === 'A') added.push(parts[i + 1]);
+    else if (parts[i] === 'D') removed.add(parts[i + 1]);
+  }
+  const here = f => { try { return fs.lstatSync(path.join(dir, f)); } catch { return null; } };
+  const inTheWay = new Set();
+  for (const f of added) {
+    if (here(f)) { inTheWay.add(f); continue; }
+    const steps = f.split('/');
+    for (let k = 1; k < steps.length; k++) {
+      const parent = steps.slice(0, k).join('/'), st = here(parent);
+      if (!st) break;
+      if (!st.isDirectory() && !removed.has(parent)) { inTheWay.add(parent); break; }
+    }
+  }
+  return [...inTheWay];
 }
 
 async function doApply(dir) {
