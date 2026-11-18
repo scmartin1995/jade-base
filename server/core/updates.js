@@ -32,7 +32,7 @@ function gitEnv(ownSsh) {
 const NET_OPTS = ['-c', 'http.lowSpeedLimit=1000', '-c', 'http.lowSpeedTime=30', '-c', 'core.quotePath=false'];
 
 /** Run git; on its time limit stop git and everything it started (ssh, the https helper), not git alone. */
-function git(dir, args, { timeout = 15000, ownSsh = false } = {}) {
+function git(dir, args, { timeout = 15000, ownSsh = false, maxOut = 1e6 } = {}) {
   return new Promise(resolve => {
     let out = '', err = '', done = false, child;
     const finish = r => { if (done) return; done = true; clearTimeout(timer); resolve(r); };
@@ -46,10 +46,11 @@ function git(dir, args, { timeout = 15000, ownSsh = false } = {}) {
       } catch { try { child.kill('SIGKILL'); } catch { /* gone */ } }
       finish({ ok: false, out: '', err: 'timed out', timedOut: true });
     }, timeout);
-    child.stdout.on('data', d => { if (out.length < 1e6) out += d; });
+    let cut = false;
+    child.stdout.on('data', d => { if (out.length < maxOut) out += d; else cut = true; });
     child.stderr.on('data', d => { if (err.length < 1e5) err += d; });
     child.on('error', e => finish({ ok: false, out: '', err: String(e.message || e), missing: e.code === 'ENOENT' }));
-    child.on('close', code => finish({ ok: code === 0, out: out.trim(), err: err.trim() }));
+    child.on('close', code => finish({ ok: code === 0, out: out.trim(), err: err.trim(), cut }));
   });
 }
 
@@ -129,7 +130,9 @@ export function why(err) {
   if (/would be overwritten|commit your changes|stash them|untracked working tree files/i.test(err)) return OWN_CHANGES;
   if (/not possible to fast-forward|diverg|not fast-forward/i.test(err)) return 'This copy of Jade has changes of its own that GitHub does not have, so it cannot be updated by itself. Nothing was changed.';
   if (/index\.lock|another git process/i.test(err)) return 'Another git program is working in this copy of Jade right now. Nothing was changed; try again in a minute.';
-  const line = (err.split('\n')[0] || 'git gave no reason').replace(/(^|[\s'"(])(?:[A-Za-z]:)?[\\/][^\s'"]+/g, '$1…');
+  const line = (err.split('\n')[0] || 'git gave no reason')
+    .replace(/(['"])(?:[a-z]+:)?(?:[A-Za-z]:)?[\\/][^'"]*\1/gi, '$1…$1')   // a quoted path, spaces and all
+    .replace(/(^|[\s(=:])(?:[A-Za-z]:)?[\\/][^\s'")]+/g, '$1…');      // a bare path, after a space, a bracket, = or :
   return `The update did not finish (${redact(line).slice(0, 200)}). Nothing was changed.`;
 }
 
@@ -138,16 +141,28 @@ export function why(err) {
  * adds) that is already here, or a file here where the update puts a folder. A tracked file the update removes is git's to handle.
  */
 async function ignoredInTheWay(dir) {
-  const d = await git(dir, ['diff', '--name-status', '--no-renames', '-z', 'HEAD', '@{u}']);
+  const d = await git(dir, ['diff', '--name-status', '--no-renames', '-z', 'HEAD', '@{u}'], { maxOut: 64e6 });
+  if (!d.ok || d.cut) return ['(the list of changes could not be read in full)'];
   const parts = d.out.split('\0'), added = [], removed = new Set();
   for (let i = 0; i + 1 < parts.length; i += 2) {
     if (parts[i] === 'A') added.push(parts[i + 1]);
     else if (parts[i] === 'D') removed.add(parts[i + 1]);
   }
   const here = f => { try { return fs.lstatSync(path.join(dir, f)); } catch { return null; } };
+  // a folder here that the update turns into a file is fine once the update's own removals have emptied it
+  const emptiedByUpdate = f => {
+    try {
+      return fs.readdirSync(path.join(dir, f), { withFileTypes: true }).every(e => {
+        const p = `${f}/${e.name}`;
+        return e.isDirectory() && !e.isSymbolicLink() ? emptiedByUpdate(p) : removed.has(p);
+      });
+    } catch { return false; }
+  };
   const inTheWay = new Set();
   for (const f of added) {
-    if (here(f)) { inTheWay.add(f); continue; }
+    const st = here(f);
+    if (st && !(st.isDirectory() && emptiedByUpdate(f))) { inTheWay.add(f); continue; }
+    if (st) continue;
     const steps = f.split('/');
     for (let k = 1; k < steps.length; k++) {
       const parent = steps.slice(0, k).join('/'), st = here(parent);

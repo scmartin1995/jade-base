@@ -171,11 +171,43 @@ test('a tracked file that becomes a folder on GitHub still updates', async () =>
   assert.equal(r.head(), r.remoteHead());
 });
 
+test('a tracked folder that becomes a file on GitHub still updates', async () => {
+  const r = repos();
+  fs.mkdirSync(path.join(r.other, 'td'));
+  r.push(path.join('td', 'inner.txt'), 'inside\n', 'Add a folder');
+  await updates.apply({ root: r.jade });
+  git(r.other, 'rm', '-q', '-r', 'td');
+  r.push('td', 'now a file\n', 'Make td a file');
+  const out = await updates.apply({ root: r.jade });
+  assert.equal(out.ok, true, out.reason);
+  assert.equal(r.head(), r.remoteHead());
+});
+
+test('a tracked folder that becomes a file is refused while it still holds an ignored file of the person', async () => {
+  const r = repos();
+  fs.mkdirSync(path.join(r.other, 'td'));
+  r.push(path.join('td', 'inner.txt'), 'inside\n', 'Add a folder');
+  await updates.apply({ root: r.jade });
+  fs.appendFileSync(path.join(r.jade, '.git', 'info', 'exclude'), 'td/mine.txt\n');
+  fs.writeFileSync(path.join(r.jade, 'td', 'mine.txt'), 'mine\n');
+  git(r.other, 'rm', '-q', '-r', 'td');
+  r.push('td', 'now a file\n', 'Make td a file');
+  const before = r.head();
+  const out = await updates.apply({ root: r.jade });
+  assert.equal(out.ok, false);
+  assert.equal(r.head(), before);
+  assert.equal(fs.readFileSync(path.join(r.jade, 'td', 'mine.txt'), 'utf8'), 'mine\n');
+});
+
 test('a git message is put in plain words: paths hidden, branch names kept', () => {
   const said = updates.why("fatal: cannot open '/srv/someone/jade/.git/FETCH_HEAD' for origin/main: Permission denied");
   assert.doesNotMatch(said, /someone/);
   assert.match(said, /origin\/main/);
   assert.doesNotMatch(updates.why('error: C:\\Users\\someone\\jade is busy'), /someone/);
+  for (const err of ["fatal: '/srv/Some One/jade/.git' is locked", "fatal: unable to access 'file:///srv/someone/remote.git'", 'error: directory=/srv/someone/x/ busy']) {
+    assert.doesNotMatch(updates.why(err), /someone|Some One|One\//i, err);
+  }
+  assert.match(updates.why('error: busy (at /srv/jade)'), /\(at …\)/);
 });
 
 test('a branch that is gone from GitHub is told apart from being offline', async () => {
