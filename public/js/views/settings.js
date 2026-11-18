@@ -14,12 +14,13 @@ const SECTIONS = [
   ['look', 'Look', 'sun', 'Theme and colours'],
   ['meetings', 'Meetings and automated agents', 'mic', 'Which models the background agents use, and what happens to meeting results'],
   ['schedule', 'Schedule', 'clock', 'When the agents run on their own'],
+  ['updates', 'Updates', 'refresh', 'Whether Jade looks for a newer version of itself, and Claude Code\'s version'],
   ['dreams', 'Dreams', 'moon', 'What Dreams reads, and whether it looks outside the work'],
 ];
 
 export default {
   title: 'Settings',
-  refreshOn: ['config', 'schedule', 'memory', 'engines'],
+  refreshOn: ['config', 'schedule', 'memory', 'engines', 'update'],
   async render(root, ctx) {
     const { api, ui, state, voice } = ctx;
     const { esc, icon } = ui;
@@ -30,7 +31,7 @@ export default {
     const sec = SECS.some(([id]) => id === ctx.params[0]) ? ctx.params[0] : (this._sec || 'engine');
     this._sec = sec;
     const need = id => sec === id;
-    const [schedule, modelStatus, mem, prov, connectors, perm, setupInfo] = await Promise.all([
+    const [schedule, modelStatus, mem, prov, connectors, perm, setupInfo, upd] = await Promise.all([
       need('schedule') ? api('GET', '/api/schedule') : [],
       need('voice') ? api('GET', '/api/voice/model-status').catch(() => ({})) : {},
       need('files') ? api('GET', '/api/memory/stats').catch(() => ({ folders: [] })) : { folders: [] },
@@ -38,6 +39,7 @@ export default {
       need('connectors') || need('privacy') ? api('GET', '/api/connectors').catch(() => []) : [],
       need('permissions') ? api('GET', '/api/permissions').catch(() => ({ mode: 'irreversible', modes: {}, pending: [], zones: { free: [], protected: [] }, changes: [] })) : null,
       need('meetings') ? api('GET', '/api/setup').catch(() => null) : null,   // the models the agents will really use, decided on the server
+      need('updates') ? api('GET', '/api/updates').catch(() => ({ ...(state.boot.update || {}), claude: '' })) : null,
     ]);
     const vs = voice.status();
     const pill = (ok, yes, no) => `<span class="chip ${ok ? 'on' : ''}" style="height:22px">${ok ? icon('check', 12) : icon('x', 12)}${esc(ok ? yes : no)}</span>`;
@@ -159,6 +161,8 @@ export default {
               <label class="switch"><input type="checkbox" data-k="privacy.webFonts" data-bool ${c.privacy?.webFonts !== false ? 'checked' : ''} aria-label="Load web fonts"><span></span></label></div>
             <div class="item"><div class="main-col"><div class="title">Claude bridge</div><div class="meta">Lets a Claude Code session read your actions and add notes through Jade (see bridge/README.md). Off until you switch it on, and it still needs the secret Jade keeps in its data folder.</div></div>
               <label class="switch"><input type="checkbox" data-k="bridge.enabled" data-bool ${c.bridge?.enabled ? 'checked' : ''} aria-label="Allow the Claude bridge"><span></span></label></div>
+            <div class="item"><div class="main-col"><div class="title">Update check</div><div class="meta">Every six hours git asks GitHub whether this copy of Jade is behind (details under Updates). Nothing about you or your work is sent.</div></div>
+              <label class="switch"><input type="checkbox" data-k="updates.check" data-bool ${c.updates?.check !== false ? 'checked' : ''} aria-label="Look for a newer version of Jade"><span></span></label></div>
             <div class="item"><div class="main-col"><div class="title">Offline voice model</div><div class="meta">A 40 MB speech model downloaded once, when you ask for it under Voice. Your voice itself is recognised on this computer.</div></div></div>
           </div>
           <p class="tiny muted" style="margin-top:10px">Claude Code processes started by Jade run with <code>CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1</code>: no auto-update, telemetry or error reports from them.</p>`,
@@ -207,6 +211,25 @@ export default {
           <label class="field">Most text from one conversation <small>in characters; longer ones are cut, and the cut is marked</small><input type="number" min="500" step="500" data-k="dreams.maxCharsPerSession" data-num value="${esc(dc.maxCharsPerSession || 6000)}"></label></div>
           <label class="field">Most text from Claude Code in all <small>in characters; older conversations beyond this are left out, and that is marked</small><input type="number" min="2000" step="5000" data-k="dreams.maxChars" data-num value="${esc(dc.maxChars || 60000)}"></label></div>`,
         { note: 'The nightly run happens only when both Dreams and Routines are switched on under Modules. Dream now on the Dreams page works whenever Dreams is on.' });
+    } else if (sec === 'updates') {
+      const u = upd || {};
+      const n = u.behind || 0;
+      const say = {   // where this copy stands, in plain words (server/core/updates.js names the states)
+        current: 'Jade is up to date.',
+        behind: `${n} new change${n === 1 ? ' is' : 's are'} waiting on GitHub.`,
+        diverged: 'This copy of Jade has changes of its own that GitHub does not have, so it cannot update itself. Ask whoever set it up.',
+        unreachable: 'GitHub could not be reached at the last check. Jade tries again later.',
+        'not-git': 'This copy of Jade was not installed with git, so it cannot look for updates. Download new versions from GitHub.',
+        'no-upstream': 'This copy of Jade does not follow a branch on GitHub, so there is nothing to compare it with.',
+        'no-branch': 'This copy of Jade is not on a branch, so there is nothing to compare it with.',
+      }[u.state] || 'Not checked yet.';
+      body = group('Jade', `
+          <div class="item row" style="padding:6px 0 10px"><div class="grow"><div class="title" style="color:var(--fg-bright)">${esc(say)}</div><div class="tiny muted">${u.checkedAt ? `Last checked ${esc(ui.ago(u.checkedAt))}` : 'Not checked since Jade started'}${u.branch ? ` · following ${esc(u.branch)}` : ''}</div></div></div>
+          ${u.state === 'behind' && u.latest?.length ? `<div class="small" style="margin:0 0 10px"><div class="tiny muted" style="margin-bottom:4px">What changed</div><ul style="margin:0;padding-left:18px">${u.latest.map(s => `<li>${esc(s)}</li>`).join('')}</ul>${n > u.latest.length ? `<div class="tiny muted">and ${n - u.latest.length} more</div>` : ''}</div>` : ''}
+          <div class="row wrap" style="gap:10px;align-items:center">${u.state === 'behind' ? `<button class="btn sm primary" data-update-now>${icon('refresh', 14)}Update now</button>` : ''}<button class="btn sm ghost" data-update-check>${icon('refresh', 14)}Check now</button></div>
+          ${rowSwitch('Look for a newer version', 'Every six hours, and a minute after Jade starts, Jade asks GitHub whether its copy is behind. Only Jade\'s own address on GitHub is contacted; nothing about you or your work is sent.', 'updates.check', c.updates?.check !== false)}`,
+        { note: 'Update now brings this copy level with GitHub. It never overwrites changes made in this copy; if it would, it stops and says why. Jade restarts by itself afterwards, once nothing is running.' })
+      + group('Claude Code', `<div class="item"><div class="main-col"><div class="title">Claude Code ${u.claude ? esc(u.claude) : ''}</div><div class="meta">${e.claude.installed ? 'Jade turns off Claude Code\'s own automatic updates for the work it starts. To update Claude Code, run <code>claude update</code> in a terminal now and then.' : 'Claude Code was not found on this computer. See Engine.'}</div></div></div>`);
     } else if (sec === 'schedule') {
       body = group('When the agents run', `<div class="table-wrap"><table class="t"><thead><tr><th>What</th><th>When</th><th>Last run</th><th>Next</th></tr></thead><tbody>
             ${schedule.map(t => `<tr><td>${esc(t.name)} <span class="tiny muted">${esc(t.kind)}${t.perProject ? ' · per project' : ''}</span></td><td class="mono small">${esc(t.schedule)}</td><td class="small">${t.lastRun ? esc(ui.ago(t.lastRun)) : '—'}</td><td class="small">${t.nextRun ? esc(new Date(t.nextRun).toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' })) : t.schedule.startsWith('every') ? 'rolling' : '—'}</td></tr>`).join('')}
@@ -272,6 +295,18 @@ export default {
     });
     root.querySelector('[data-rerun-setup]')?.addEventListener('click', async () => {
       try { await api('POST', '/api/setup/done', { done: false }); state.boot = await api('GET', '/api/boot'); ctx.go('setup'); } catch (err) { ui.toast(err.message, 'error'); }
+    });
+    root.querySelector('[data-update-check]')?.addEventListener('click', async ev => {
+      ev.currentTarget.disabled = true;
+      try { const s = await api('POST', '/api/updates/check'); state.boot.update = s; ui.toast(s.state === 'behind' ? 'A newer Jade is on GitHub' : s.state === 'current' ? 'Jade is up to date' : 'Checked', 'info', 2000); }
+      catch (err) { ui.toast(err.message, 'error'); }
+      this.render(root, ctx);
+    });
+    root.querySelector('[data-update-now]')?.addEventListener('click', async ev => {
+      const b = ev.currentTarget; b.disabled = true; b.innerHTML = `${icon('refresh', 14)}Updating…`;
+      try { const r = await api('POST', '/api/updates/apply'); if (!r.ok) ui.toast(r.reason, 'error', 9000); }
+      catch { ui.toast('Jade is restarting with the new version', 'info', 4000); return; }   // the server may restart before it answers
+      this.render(root, ctx);
     });
     root.querySelector('[data-recheck]')?.addEventListener('click', async ev => { ev.currentTarget.disabled = true; await api('GET', '/api/engines?refresh=1'); state.boot = await api('GET', '/api/boot'); this.render(root, ctx); });
 

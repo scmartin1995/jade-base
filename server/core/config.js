@@ -46,6 +46,7 @@ export const DEFAULTS = {
   storage: { folderName: 'Jade' },   // the sub-folder of a project's first folder where Jade keeps that project's notes, actions, meetings and dashboards
   bridge: { enabled: false },   // the Claude bridge routes (bridge/README.md): off until switched on in Settings
   privacy: { webFonts: true },  // false = never load Google Fonts (system fonts instead)
+  updates: { check: true },     // check: every few hours, ask GitHub (through git) whether this copy of Jade is behind (server/core/updates.js)
   schedules: {},             // agentId -> schedule string override, or "off"
   skills: {},                // skillName -> { enabled, automation }
 };

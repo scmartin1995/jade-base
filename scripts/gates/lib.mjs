@@ -137,11 +137,12 @@ export async function launchBrowser(browserPath, { track = () => {}, trackDir = 
 /**
  * Start the real server on a free port with the given folders and a PATH that holds only the stand-in `claude`.
  * Returns { base, port, token, child, stderr(), exited(), stop() }; waits until /api/boot answers.
+ * The update check is pointed at the data folder (JADE_UPDATE_ROOT, not a git copy), so a test never fetches into this repository.
  */
 export async function startServer({ home, claudeHome, bin = '', token = GATE_TOKEN, env = {}, timeout = 20000, detached = false } = {}) {
   const port = await freePort();
   const child = spawn(process.execPath, [path.join(ROOT, 'server/index.js')], {
-    env: { ...process.env, PATH: safePath(bin), JADE_HOME: home, JADE_CLAUDE_HOME: claudeHome, JADE_PORT: String(port), JADE_TOKEN: token, ...env },
+    env: { ...process.env, PATH: safePath(bin), JADE_HOME: home, JADE_CLAUDE_HOME: claudeHome, JADE_PORT: String(port), JADE_TOKEN: token, JADE_UPDATE_ROOT: home, ...env },
     stdio: ['ignore', 'ignore', 'pipe'], detached: detached && !WIN,
   });
   let err = '', gone = false;

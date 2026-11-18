@@ -29,6 +29,7 @@ import * as bridge from './core/bridge.js';
 import { extractText } from './core/extract.js';
 import { emit } from './core/bus.js';
 import * as connection from './core/connection.js';
+import * as updates from './core/updates.js';
 import { foldersOf, resolveHome } from './core/locations.js';
 
 // api.js is re-imported on change; the "api" scope drops its old routes first, so nothing is registered twice.
@@ -50,8 +51,12 @@ function sendFile(res, file) {
 // ------------------------------------------------------------- boot & system
 on('GET', '/api/boot', () => ({
   config: publicConfig(), modules: modules.list(), theme: theme.current(), engines: engines.detect(), models: models.offerable(),
-  agents: agents.list().map(({ body, ...a }) => a), paths: store.paths(), platform: process.platform, version: '0.1.0', userHome: os.homedir(),
+  agents: agents.list().map(({ body, ...a }) => a), paths: store.paths(), platform: process.platform, version: '0.1.0', userHome: os.homedir(), update: updates.status(),
 }));
+// The update check (server/core/updates.js): the last result, a check now, and Update now (a fast-forward of this copy, nothing else).
+on('GET', '/api/updates', async () => ({ ...updates.status(), claude: await updates.claudeVersion() }));
+on('POST', '/api/updates/check', () => updates.check());
+on('POST', '/api/updates/apply', () => updates.apply());
 on('GET', '/api/config', () => publicConfig());
 // `setup` is not a setting to patch here: finishing set-up goes through POST /api/setup/done, which checks the connection first.
 on('POST', '/api/config', ({ body }) => { const { setup: _skip, ...patch } = body || {}; config.save(patch); if (patch.memory) { memory.rebuild(); memory.watch(); } return publicConfig(); });
