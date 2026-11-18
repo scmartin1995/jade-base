@@ -12,7 +12,7 @@
     "bench": "node scripts/bench/bench.mjs",
     "gates": "node scripts/gates/imports.mjs && node scripts/gates/boot-smoke.mjs && node scripts/gates/pages.mjs && node scripts/gates/sample-module.mjs && node scripts/gates/hygiene.mjs && node scripts/gates/docs.mjs"
   },
-  "engines": { "node": ">=20" },
+  "engines": { "node": ">=22" },
   "author": "The Jade Base authors",
   "license": "MIT"
 }

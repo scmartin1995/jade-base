@@ -6,6 +6,7 @@ process.title = 'Jade launcher';
 //   node jade.js --no-open  start without opening a window
 //   node jade.js --open     only open the window, for a Jade that is already running
 //   node jade.js --tab      open a browser tab instead of an app window (also JADE_WINDOW=tab, or `window` in config.json)
+//   node jade.js --version-check  only print the old-Node warning, if there is one, and exit (JADE_NODE_VERSION stands in for the running version in a test)
 //   JADE_HOME=~/Somewhere   keep data somewhere else (default ~/JadeBase)
 //   JADE_PORT=<number>      change the port (default: DEFAULT_PORT in server/core/config.js)
 import { fork, spawn, spawnSync } from 'node:child_process';
@@ -14,6 +15,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as config from './server/core/config.js';
 import { openJade } from './server/core/opener.js';
+import { nodeWarning } from './server/core/nodeversion.js';
 
 const { JADE_HOME, port } = config;
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -23,7 +25,11 @@ const PORT = port();
 if (process.argv.includes('--open')) { await openJade({ port: PORT, spawn }); process.exit(0); }
 const BASE = `http://127.0.0.1:${PORT}`;
 const [major] = process.versions.node.split('.').map(Number);
-if (major < 20) { console.error(`Jade needs Node 20 or newer (you have ${process.version}). Get it from https://nodejs.org`); process.exit(1); }
+if (major < 20) { console.error(`Jade needs Node 20 or newer (you have ${process.version}). Get it from https://nodejs.org`); process.exit(1); }   // older than this, Jade's own code does not run
+// Below the supported minimum (package.json "engines"): a warning, not a stop, so an older install keeps working until Node is updated.
+const oldNode = nodeWarning(process.env.JADE_NODE_VERSION || process.version);
+if (oldNode) console.error(oldNode);
+if (process.argv.includes('--version-check')) process.exit(0);
 
 // The launcher's pid, in its own data folder, so `jade --stop` stops this Jade and no other. Only one launcher per data folder: a second
 // one must not take the file over (its exit would delete it and leave the first Jade running with nothing to stop it by).

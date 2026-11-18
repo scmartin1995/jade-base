@@ -12,7 +12,7 @@ set "URL=http://127.0.0.1:%PORT%"
 set "BIN=%LOCALAPPDATA%\Jade"
 if not exist "%BIN%" mkdir "%BIN%"
 for /f "delims=" %%n in ('where node.exe 2^>nul') do if not defined NODE set "NODE=%%n"
-if not defined NODE ( echo Node.js 20+ is needed: https://nodejs.org & exit /b 1 )
+if not defined NODE ( echo Node.js 22+ is needed: https://nodejs.org & exit /b 1 )
 if not exist "%BIN%\jade.exe" copy /y "%NODE%" "%BIN%\jade.exe" >nul
 
 if /i "%~1"=="--stop" goto stop

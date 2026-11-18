@@ -1,4 +1,4 @@
-// Runs the tests the same way on every Node (20+) and system: lists the test files itself (no shell globbing, no --test glob support)
+// Runs the tests the same way on every Node (22+) and system: lists the test files itself (no shell globbing, no --test glob support)
 // and starts `node --test --import ./test/setup.js <files>`. Extra arguments are files to run instead of all of them; output and exit
 // code pass straight through.
 // A run that stops moving does not hang silently: a test that takes more than JADE_TEST_TIMEOUT_MIN minutes (default 12; `--test-timeout`,
