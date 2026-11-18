@@ -147,6 +147,7 @@ function renderNav() {
   const mod = mods.find(m => m.id === moduleOf(state.route));
   $('#crumb').innerHTML = mod && state.route !== 'home' ? `<span class="slash">/</span>${esc(mod.name)}${state.route === 'project' ? '<span class="slash">/</span>' + esc(state.params[0] || '') : ''}` : '';
   if (state.boot.config.setup?.done === false && state.route !== 'setup') $('#crumb').innerHTML += `<a class="setup-link" href="#/setup">Finish set-up</a>`;
+  if (state.boot.node?.warning && !(state.route === 'settings' && state.params[0] === 'updates')) $('#crumb').innerHTML += `<a class="setup-link" href="#/settings/updates" title="${ui.esc(state.boot.node.warning)}">Update Node</a>`;
   const up = state.boot.update;   // a newer Jade on GitHub (server/core/updates.js): the link opens Settings, where Update now is
   if (up?.state === 'behind' && up.check !== false && !(state.route === 'settings' && state.params[0] === 'updates')) $('#crumb').innerHTML += `<a class="setup-link" href="#/settings/updates" title="${up.behind} new change${up.behind === 1 ? '' : 's'} on GitHub">Update available</a>`;
   $('#mb-agents').innerHTML = running ? `<span class="pulse-dot"></span>${running} working` : `${icon('cpu', 14)}<span class="hide-sm">idle</span>`;

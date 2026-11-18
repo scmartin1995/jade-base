@@ -222,6 +222,9 @@ export default {
         'not-git': 'This copy of Jade was not installed with git, so it cannot look for updates. Download new versions from GitHub.',
         'no-upstream': 'This copy of Jade does not follow a branch on GitHub, so there is nothing to compare it with.',
         'no-branch': 'This copy of Jade is not on a branch, so there is nothing to compare it with.',
+        gone: 'The branch this copy of Jade follows is no longer on GitHub.',
+        'no-git': 'git is not installed on this computer, so Jade cannot look for updates. Download new versions from GitHub.',
+        'not-trusted': 'git will not work in this copy of Jade because the folder belongs to another user account on this computer.',
       }[u.state] || 'Not checked yet.';
       body = group('Jade', `
           <div class="item row" style="padding:6px 0 10px"><div class="grow"><div class="title" style="color:var(--fg-bright)">${esc(say)}</div><div class="tiny muted">${u.checkedAt ? `Last checked ${esc(ui.ago(u.checkedAt))}` : 'Not checked since Jade started'}${u.branch ? ` · following ${esc(u.branch)}` : ''}</div></div></div>
@@ -229,6 +232,7 @@ export default {
           <div class="row wrap" style="gap:10px;align-items:center">${u.state === 'behind' ? `<button class="btn sm primary" data-update-now>${icon('refresh', 14)}Update now</button>` : ''}<button class="btn sm ghost" data-update-check>${icon('refresh', 14)}Check now</button></div>
           ${rowSwitch('Look for a newer version', 'Every six hours, and a minute after Jade starts, Jade asks GitHub whether its copy is behind. Only Jade\'s own address on GitHub is contacted; nothing about you or your work is sent.', 'updates.check', c.updates?.check !== false)}`,
         { note: 'Update now brings this copy level with GitHub. It never overwrites changes made in this copy; if it would, it stops and says why. Jade restarts by itself afterwards, once nothing is running.' })
+      + group('Node', `<div class="item"><div class="main-col"><div class="title">Node ${esc(state.boot.node?.version || '')}</div><div class="meta">${state.boot.node?.warning ? `<span style="color:var(--warn)">${esc(state.boot.node.warning)}</span>` : `Supported. Jade needs Node ${esc(state.boot.node?.min || '')} or newer; Node itself is updated outside Jade.`}</div></div></div>`)
       + group('Claude Code', `<div class="item"><div class="main-col"><div class="title">Claude Code ${u.claude ? esc(u.claude) : ''}</div><div class="meta">${e.claude.installed ? 'Jade turns off Claude Code\'s own automatic updates for the work it starts. To update Claude Code, run <code>claude update</code> in a terminal now and then.' : 'Claude Code was not found on this computer. See Engine.'}</div></div></div>`);
     } else if (sec === 'schedule') {
       body = group('When the agents run', `<div class="table-wrap"><table class="t"><thead><tr><th>What</th><th>When</th><th>Last run</th><th>Next</th></tr></thead><tbody>
@@ -305,7 +309,10 @@ export default {
     root.querySelector('[data-update-now]')?.addEventListener('click', async ev => {
       const b = ev.currentTarget; b.disabled = true; b.innerHTML = `${icon('refresh', 14)}Updating…`;
       try { const r = await api('POST', '/api/updates/apply'); if (!r.ok) ui.toast(r.reason, 'error', 9000); }
-      catch { ui.toast('Jade is restarting with the new version', 'info', 4000); return; }   // the server may restart before it answers
+      catch (err) {   // no answer at all: the server may have restarted into the new version before it answered
+        if (err instanceof TypeError) { ui.toast('Jade is restarting with the new version', 'info', 4000); return; }
+        ui.toast(err.message, 'error', 9000);
+      }
       this.render(root, ctx);
     });
     root.querySelector('[data-recheck]')?.addEventListener('click', async ev => { ev.currentTarget.disabled = true; await api('GET', '/api/engines?refresh=1'); state.boot = await api('GET', '/api/boot'); this.render(root, ctx); });

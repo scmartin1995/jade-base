@@ -8,8 +8,10 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { tmpHome } from './helpers/env.js';
 import { startServer, waitFor } from './helpers/server.js';
+import { installFakeClaude } from './helpers/fake-claude.js';
 
 const t = tmpHome('jade-updates-', { apply: true });
+installFakeClaude(t.bin, { putOnPath: false });   // the server below must never find a real `claude`
 const updates = await import('../server/core/updates.js');
 const config = await import('../server/core/config.js');
 config.load();
@@ -113,6 +115,64 @@ test('with the setting off, the automatic check does not look', async () => {
     assert.equal(git(r.jade, 'rev-list', '--count', 'HEAD..origin/main'), '0', 'nothing was fetched');
   } finally { config.save({ updates: { check: true } }); }
   assert.equal((await updates.auto({ root: r.jade })).state, 'behind');
+});
+
+test('an update that would overwrite a file git ignores is refused like any other change of this copy', async () => {
+  const r = repos();
+  fs.appendFileSync(path.join(r.jade, '.git', 'info', 'exclude'), 'secret.txt\n');
+  fs.writeFileSync(path.join(r.jade, 'secret.txt'), 'mine\n');
+  r.push('secret.txt', 'theirs\n', 'Track a file this copy ignores');
+  const before = r.head();
+  const out = await updates.apply({ root: r.jade });
+  assert.equal(out.ok, false);
+  assert.match(out.reason, /changes of its own/);
+  assert.equal(r.head(), before);
+  assert.equal(fs.readFileSync(path.join(r.jade, 'secret.txt'), 'utf8'), 'mine\n');
+});
+
+test('a branch that is gone from GitHub is told apart from being offline', async () => {
+  const r = repos();
+  git(r.jade, 'config', 'branch.main.merge', 'refs/heads/no-such-branch');
+  assert.equal((await updates.check({ root: r.jade })).state, 'gone');
+  assert.match((await updates.apply({ root: r.jade })).reason, /no longer on GitHub/);
+});
+
+test('git busy in this copy gives a plain reason with no path in it', async () => {
+  const r = repos();
+  r.push('a.txt', 'a\n', 'Add a thing');
+  fs.writeFileSync(path.join(r.jade, '.git', 'index.lock'), '');
+  try {
+    const out = await updates.apply({ root: r.jade });
+    assert.equal(out.ok, false);
+    assert.match(out.reason, /Another git program/);
+    assert.doesNotMatch(out.reason, /[\\/]/);
+  } finally { fs.rmSync(path.join(r.jade, '.git', 'index.lock'), { force: true }); }
+});
+
+test('git never asks for a password: no password-asking program is started', async () => {
+  const r = repos();
+  const log = path.join(t.root, 'askpass.log');
+  const ask = path.join(t.root, process.platform === 'win32' ? 'askpass.cmd' : 'askpass.sh');
+  fs.writeFileSync(ask, process.platform === 'win32' ? `@echo asked>>"${log}"\r\n` : `#!/bin/sh\necho asked >> '${log}'\necho x\n`, { mode: 0o755 });
+  git(r.jade, 'config', 'core.askPass', ask);
+  git(r.jade, 'remote', 'set-url', 'origin', 'http://127.0.0.1:9/nowhere.git');   // nothing listens on port 9
+  const old = process.env.GIT_ASKPASS; process.env.GIT_ASKPASS = ask;
+  try { assert.equal((await updates.check({ root: r.jade })).state, 'unreachable'); }
+  finally { if (old === undefined) delete process.env.GIT_ASKPASS; else process.env.GIT_ASKPASS = old; }
+  assert.equal(fs.existsSync(log), false);
+});
+
+test('ssh the person set up for this copy is used as it is', { skip: process.platform === 'win32' && 'the stand-in ssh is a shell script' }, async () => {
+  const r = repos();
+  const log = path.join(t.root, 'ssh.log');
+  const ssh = path.join(t.root, 'my-ssh.sh');
+  // a stand-in ssh: notes that it was used, then runs the command git asked for (the last argument) on this machine
+  fs.writeFileSync(ssh, `#!/bin/sh\necho used >> '${log}'\nfor a; do last=$a; done\nexec sh -c "$last"\n`, { mode: 0o755 });
+  git(r.jade, 'config', 'core.sshCommand', ssh);
+  git(r.jade, 'remote', 'set-url', 'origin', `ssh://stand-in${r.remote.replace(/\\/g, '/')}`);
+  r.push('a.txt', 'a\n', 'Add a thing');
+  assert.equal((await updates.check({ root: r.jade })).state, 'behind');
+  assert.ok(fs.existsSync(log), 'the person\'s own ssh was used');
 });
 
 test('through the server: check now, the page boot data, and Update now', async () => {

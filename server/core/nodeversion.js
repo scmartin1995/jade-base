@@ -13,7 +13,7 @@ export function minNode() {
 }
 /** '' on a supported Node; otherwise one plain warning that names the running version and the one to install. */
 export function nodeWarning(version = process.version) {
-  const major = Number(/^v?(\d+)/.exec(String(version))?.[1] || 0);
-  if (major >= minNode()) return '';
+  const m = /^v?(\d+)\./.exec(String(version));
+  if (!m || Number(m[1]) >= minNode()) return '';   // not a version at all: say nothing rather than something wrong
   return `Warning: Jade runs on Node ${version}, which is older than Node ${minNode()} and may no longer get security fixes. Jade still starts, but please install the current LTS version from https://nodejs.org`;
 }

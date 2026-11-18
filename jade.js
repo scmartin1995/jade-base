@@ -21,15 +21,18 @@ const { JADE_HOME, port } = config;
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const ENTRY = path.join(ROOT, 'server', 'index.js');
 const PORT = port();
+// Below the supported minimum (package.json "engines"): a warning, not a stop, so an older install keeps working until Node is updated.
+// Printed before --open too: the jade launchers run the server into a log and open the window in the terminal, so this is where it is seen.
+// Settings → Updates and the top bar say it as well. JADE_NODE_VERSION stands in for the running version only with --version-check (tests).
+const checkOnly = process.argv.includes('--version-check');
+const oldNode = nodeWarning(checkOnly && process.env.JADE_NODE_VERSION || process.version);
+if (oldNode) console.error(oldNode);
+if (checkOnly) process.exit(0);
 // `node jade.js --open`: only open the window (what scripts/jade and scripts/jade.cmd call once the server is up). Starts no server.
 if (process.argv.includes('--open')) { await openJade({ port: PORT, spawn }); process.exit(0); }
 const BASE = `http://127.0.0.1:${PORT}`;
 const [major] = process.versions.node.split('.').map(Number);
 if (major < 20) { console.error(`Jade needs Node 20 or newer (you have ${process.version}). Get it from https://nodejs.org`); process.exit(1); }   // older than this, Jade's own code does not run
-// Below the supported minimum (package.json "engines"): a warning, not a stop, so an older install keeps working until Node is updated.
-const oldNode = nodeWarning(process.env.JADE_NODE_VERSION || process.version);
-if (oldNode) console.error(oldNode);
-if (process.argv.includes('--version-check')) process.exit(0);
 
 // The launcher's pid, in its own data folder, so `jade --stop` stops this Jade and no other. Only one launcher per data folder: a second
 // one must not take the file over (its exit would delete it and leave the first Jade running with nothing to stop it by).

@@ -159,8 +159,8 @@ export async function startServer({ home, claudeHome, bin = '', token = GATE_TOK
 // The browser finder is shared with the launcher: one place knows where browsers live (server/core/browser.js).
 export { findBrowser } from '../../server/core/browser.js';
 
-// A WebSocket for the DevTools connection. Node 22+ has one built in; Node 20 does not, so this is a small
-// client (RFC 6455: text frames, masking, fragmented and large frames, ping/pong, close) over an http upgrade.
+// A WebSocket for the DevTools connection: a small client (RFC 6455: text frames, masking, fragmented and large frames, ping/pong,
+// close) over an http upgrade. Node 22+ has one built in; this one is kept so the gates behave the same on every Node.
 // It has the parts of the browser interface the gates use: onopen, onmessage({data}), onerror, onclose, send, close.
 export class MiniWebSocket {
   constructor(url) {
