@@ -86,7 +86,9 @@ export function gateSandbox(prefix = 'jade-gate') {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix + '-'));
   const home = path.join(root, 'home'), claudeHome = path.join(root, 'claude'), bin = writeStandIn(path.join(root, 'bin'));
   fs.mkdirSync(home, { recursive: true }); fs.mkdirSync(claudeHome, { recursive: true });
-  return { root, home, claudeHome, bin, cleanup: () => fs.rmSync(root, { recursive: true, force: true }) };
+  // Windows can hold a just-stopped process's folder for a moment: retry, then leave it to the operating system's temp clean-up
+  const cleanup = () => { try { fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 }); } catch { /* left for the OS */ } };
+  return { root, home, claudeHome, bin, cleanup };
 }
 
 /** Stop a child and the processes it started (a browser has helpers): the whole group on Linux and macOS, the tree on Windows. */
