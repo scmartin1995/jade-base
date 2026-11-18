@@ -21,6 +21,7 @@ import * as agents from './core/agents.js';
 import * as modules from './core/modules.js';
 import * as router from './core/router.js';
 import * as auth from './core/auth.js';
+import * as updates from './core/updates.js';
 import os from 'node:os';
 import { bus, emit } from './core/bus.js';
 import { debounce, watchTree, guardedWatch } from './core/util.js';
@@ -216,6 +217,7 @@ server.listen(PORT, '127.0.0.1', () => {
   models.start();  // which models this endpoint offers, refreshed now and then
   setInterval(() => engines.refresh(), 10 * 60e3);
   scheduler.start();
+  updates.start();   // is this copy of Jade behind GitHub? A minute after start, then every few hours, while the setting is on
 });
 server.on('error', e => {
   if (e.code === 'EADDRINUSE') { console.error(`Port ${PORT} is busy. Is Jade already running? Set JADE_PORT to use another port.`); process.exit(3); }

@@ -86,7 +86,9 @@ export function gateSandbox(prefix = 'jade-gate') {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix + '-'));
   const home = path.join(root, 'home'), claudeHome = path.join(root, 'claude'), bin = writeStandIn(path.join(root, 'bin'));
   fs.mkdirSync(home, { recursive: true }); fs.mkdirSync(claudeHome, { recursive: true });
-  return { root, home, claudeHome, bin, cleanup: () => fs.rmSync(root, { recursive: true, force: true }) };
+  // Windows can hold a just-stopped process's folder for a moment: retry, then leave it to the operating system's temp clean-up
+  const cleanup = () => { try { fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 }); } catch { /* left for the OS */ } };
+  return { root, home, claudeHome, bin, cleanup };
 }
 
 /** Stop a child and the processes it started (a browser has helpers): the whole group on Linux and macOS, the tree on Windows. */
@@ -137,11 +139,12 @@ export async function launchBrowser(browserPath, { track = () => {}, trackDir = 
 /**
  * Start the real server on a free port with the given folders and a PATH that holds only the stand-in `claude`.
  * Returns { base, port, token, child, stderr(), exited(), stop() }; waits until /api/boot answers.
+ * The update check is pointed at the data folder (JADE_UPDATE_ROOT, not a git copy), so a test never fetches into this repository.
  */
 export async function startServer({ home, claudeHome, bin = '', token = GATE_TOKEN, env = {}, timeout = 20000, detached = false } = {}) {
   const port = await freePort();
   const child = spawn(process.execPath, [path.join(ROOT, 'server/index.js')], {
-    env: { ...process.env, PATH: safePath(bin), JADE_HOME: home, JADE_CLAUDE_HOME: claudeHome, JADE_PORT: String(port), JADE_TOKEN: token, ...env },
+    env: { ...process.env, PATH: safePath(bin), JADE_HOME: home, JADE_CLAUDE_HOME: claudeHome, JADE_PORT: String(port), JADE_TOKEN: token, JADE_UPDATE_ROOT: home, ...env },
     stdio: ['ignore', 'ignore', 'pipe'], detached: detached && !WIN,
   });
   let err = '', gone = false;
@@ -158,8 +161,8 @@ export async function startServer({ home, claudeHome, bin = '', token = GATE_TOK
 // The browser finder is shared with the launcher: one place knows where browsers live (server/core/browser.js).
 export { findBrowser } from '../../server/core/browser.js';
 
-// A WebSocket for the DevTools connection. Node 22+ has one built in; Node 20 does not, so this is a small
-// client (RFC 6455: text frames, masking, fragmented and large frames, ping/pong, close) over an http upgrade.
+// A WebSocket for the DevTools connection: a small client (RFC 6455: text frames, masking, fragmented and large frames, ping/pong,
+// close) over an http upgrade. Node 22+ has one built in; this one is kept so the gates behave the same on every Node.
 // It has the parts of the browser interface the gates use: onopen, onmessage({data}), onerror, onclose, send, close.
 export class MiniWebSocket {
   constructor(url) {

@@ -1,7 +1,7 @@
 # Jade Base: instructions for an assistant
 
 Jade Base is a local web app for project managers. It keeps projects, notes, action items and meeting records, and talks to Claude by driving the `claude` command line tool (Claude Code) in the background.
-It is Node 20+, plain JavaScript modules, no npm dependencies, no build step. The server is in `server/`, the pages in `public/`.
+It is Node 22+ (the minimum is `engines` in `package.json`; CI tests 22, 24 and 26), plain JavaScript modules, no npm dependencies, no build step. The server is in `server/`, the pages in `public/`.
 Data lives as plain files in a data folder (`~/JadeBase` unless `JADE_HOME` says otherwise). The user is a project manager, not a programmer: anything a person reads must be plain English.
 
 ## Commands

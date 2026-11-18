@@ -31,7 +31,7 @@ Find the sentence that sounds like your problem. Each entry says what it means, 
 ### Jade keeps crashing and then stops
 
 **Means.** The launcher restarted the server five times and it still failed to stay up. The message is "Jade keeps crashing; stopping. Fix the error above, then run npm start again."
-**Check.** Read the error printed above that line. Typical causes: Node older than 20 ("Jade needs Node 20 or newer"), an edit to a file in `server/` that does not parse, or a module file in `<data folder>/modules/` that throws.
+**Check.** Read the error printed above that line. Typical causes: Node older than 20 ("Jade needs Node 20 or newer"; on Node 20 or 21 Jade starts but warns that the Node is too old, so install Node 22 or newer), an edit to a file in `server/` that does not parse, or a module file in `<data folder>/modules/` that throws.
 **Fix.** Run `node --version`. If you added a module of your own, move it out of `<data folder>/modules/` and start again. Changing core files restarts the server by itself; a typing mistake in one stops it until fixed.
 **Owner.** `jade.js`; module loading in `server/core/modules.js` (a bad manifest is skipped with a line in the log).
 
