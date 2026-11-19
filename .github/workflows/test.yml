@@ -1,6 +1,7 @@
 name: test
 on:
   push:
+    branches: [main]   # other branches are tested through their pull request, so each commit runs once
   pull_request:
   workflow_dispatch:
 permissions:
